@@ -11,6 +11,7 @@
     /* --- Pages --- */
     { group: 'Pages', id: 'p-office',   label: 'Office — Dashboard',        hint: 'go',  icon: '◆', run: () => nav('neo-labs-office.html') },
     { group: 'Pages', id: 'p-council',  label: 'Agent Council — Parallel',  hint: 'go',  icon: '◆', run: () => nav('neo-labs-council.html') },
+    { group: 'Pages', id: 'p-admin',    label: 'Admin — Analytics & Audit', hint: 'go',  icon: '📈', run: () => nav('neo-labs-admin.html') },
     { group: 'Pages', id: 'p-team',     label: 'Team Playground',           hint: 'go',  icon: '◇', run: () => nav('neo-labs-team.html') },
     { group: 'Pages', id: 'p-brand',    label: 'Brand Guidelines',          hint: 'go',  icon: '◇', run: () => nav('neo-labs-brand.html') },
     { group: 'Pages', id: 'p-landing',  label: 'Landing Page',              hint: 'go',  icon: '◇', run: () => nav('neo-labs-landing.html') },

@@ -34,6 +34,22 @@ CREATE TABLE IF NOT EXISTS messages (
 
 CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conv_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_conv_updated ON conversations(updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts         INTEGER NOT NULL,
+  user_email TEXT,
+  action     TEXT NOT NULL,
+  agent      TEXT,
+  model      TEXT,
+  tokens_in  INTEGER DEFAULT 0,
+  tokens_out INTEGER DEFAULT 0,
+  ms         INTEGER DEFAULT 0,
+  meta       TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(ts DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action, ts DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log(user_email, ts DESC);
 """
 
 
@@ -138,6 +154,96 @@ def rename_conversation(conv_id: str, title: str) -> bool:
             (title[:120], now_ms(), conv_id),
         )
         return cur.rowcount > 0
+
+
+def log_audit(
+    user_email: str | None,
+    action: str,
+    agent: str = "",
+    model: str = "",
+    tokens_in: int = 0,
+    tokens_out: int = 0,
+    ms: int = 0,
+    meta: str = "",
+) -> int:
+    """Append-only audit entry. Never raises — log failure shouldn't break requests."""
+    try:
+        with conn() as c:
+            cur = c.execute(
+                "INSERT INTO audit_log(ts, user_email, action, agent, model, "
+                "tokens_in, tokens_out, ms, meta) VALUES(?,?,?,?,?,?,?,?,?)",
+                (now_ms(), user_email or "", action, agent, model,
+                 tokens_in, tokens_out, ms, (meta or "")[:500]),
+            )
+            return cur.lastrowid
+    except Exception:
+        return 0
+
+
+def audit_stats(days: int = 7) -> dict:
+    """Aggregate stats for admin dashboard."""
+    cutoff = now_ms() - days * 86400 * 1000
+    today = now_ms() - 86400 * 1000
+    with conn() as c:
+        total = c.execute(
+            "SELECT COUNT(*) n FROM audit_log WHERE ts >= ?", (cutoff,)
+        ).fetchone()["n"]
+        today_n = c.execute(
+            "SELECT COUNT(*) n FROM audit_log WHERE ts >= ?", (today,)
+        ).fetchone()["n"]
+        by_action = c.execute(
+            "SELECT action, COUNT(*) n FROM audit_log WHERE ts >= ? "
+            "GROUP BY action ORDER BY n DESC", (cutoff,)
+        ).fetchall()
+        by_agent = c.execute(
+            "SELECT agent, COUNT(*) n FROM audit_log "
+            "WHERE ts >= ? AND agent != '' GROUP BY agent ORDER BY n DESC",
+            (cutoff,),
+        ).fetchall()
+        by_model = c.execute(
+            "SELECT model, COUNT(*) n, SUM(tokens_in) ti, SUM(tokens_out) tout "
+            "FROM audit_log WHERE ts >= ? AND model != '' GROUP BY model",
+            (cutoff,),
+        ).fetchall()
+        by_user = c.execute(
+            "SELECT user_email, COUNT(*) n FROM audit_log "
+            "WHERE ts >= ? AND user_email != '' GROUP BY user_email ORDER BY n DESC LIMIT 10",
+            (cutoff,),
+        ).fetchall()
+        tokens = c.execute(
+            "SELECT COALESCE(SUM(tokens_in),0) ti, COALESCE(SUM(tokens_out),0) tout, "
+            "COALESCE(AVG(ms),0) avg_ms "
+            "FROM audit_log WHERE ts >= ?", (cutoff,)
+        ).fetchone()
+        per_day = c.execute(
+            "SELECT CAST((? - ts) / 86400000 AS INTEGER) bucket, COUNT(*) n "
+            "FROM audit_log WHERE ts >= ? AND action = 'chat' "
+            "GROUP BY bucket ORDER BY bucket ASC",
+            (now_ms(), cutoff),
+        ).fetchall()
+        return {
+            "window_days": days,
+            "total_events": total,
+            "events_today": today_n,
+            "tokens_in": tokens["ti"],
+            "tokens_out": tokens["tout"],
+            "avg_response_ms": int(tokens["avg_ms"]),
+            "by_action": [dict(r) for r in by_action],
+            "by_agent": [dict(r) for r in by_agent],
+            "by_model": [dict(r) for r in by_model],
+            "by_user": [dict(r) for r in by_user],
+            "per_day": [dict(r) for r in per_day],
+        }
+
+
+def audit_recent(limit: int = 50) -> list[dict]:
+    with conn() as c:
+        rows = c.execute(
+            "SELECT ts, user_email, action, agent, model, tokens_in, tokens_out, ms, meta "
+            "FROM audit_log ORDER BY ts DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
 
 
 init()

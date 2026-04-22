@@ -8,7 +8,7 @@ from pathlib import Path
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
 from auth import require_auth, require_auth_or_hook, limiter
-import asyncio, json, os, anthropic
+import asyncio, json, os, time, anthropic
 import db
 
 load_dotenv()
@@ -253,6 +253,8 @@ async def chat(request: Request, body: dict, user: dict = Depends(require_auth))
         return {"error": "ANTHROPIC_API_KEY malformed — check Railway Variables (no leading '=' or spaces)"}
     client = anthropic.AsyncAnthropic(api_key=api_key)
     api_model = resolve_model(model)  # UI alias → real Anthropic model id
+    user_email = (user or {}).get("email", "") if isinstance(user, dict) else ""
+    _t_start = int(time.time() * 1000)
 
     async def generate():
         full = ""
@@ -307,18 +309,33 @@ async def chat(request: Request, body: dict, user: dict = Depends(require_auth))
                 f"\n\n⚠️ stream error: {type(inner).__name__}: {str(inner)[:300]} "
                 f"(model={api_model}, opened={stream_opened})"
             )
+            db.log_audit(
+                user_email, "chat_error", agent, api_model,
+                len(prompt) // 4, 0,
+                int(time.time() * 1000) - _t_start,
+                f"{type(inner).__name__}: {str(inner)[:200]}",
+            )
             return
         # Safety net: API returned 200 but produced zero text (e.g. stop_reason
         # = end_turn with empty content). Without this the frontend shows a
         # blank bubble and the user thinks the app is broken.
         if not full:
             yield "⚠️ empty response from API (no text chunks). Try again or switch model."
+            db.log_audit(user_email, "chat_empty", agent, api_model,
+                         len(prompt) // 4, 0,
+                         int(time.time() * 1000) - _t_start, "")
             return
         if persist and conv_id:
             try:
                 db.append_message(conv_id, "assistant", full, agent)
             except Exception:
                 pass  # stream already sent; persist failure shouldn't corrupt UX
+        db.log_audit(
+            user_email, "chat", agent, api_model,
+            len(prompt) // 4, len(full) // 4,
+            int(time.time() * 1000) - _t_start,
+            conv_id or "",
+        )
 
     return StreamingResponse(generate(), media_type="text/plain")
 
@@ -343,12 +360,16 @@ async def orchestrate_endpoint(request: Request, body: dict, user: dict = Depend
     from orchestrator import orchestrate
 
     api_model = resolve_model(model)  # UI alias → real Anthropic model id
+    email = (user or {}).get("email", "") if isinstance(user, dict) else ""
+    t_start = int(time.time() * 1000)
 
     async def stream():
+        delegations = 0
         async for event in orchestrate(prompt, AGENTS, agent, api_model):
             yield json.dumps(event, ensure_ascii=False) + "\n"
-            # Also broadcast handoff/done events to activity feed
             t = event.get("type")
+            if t == "handoff":
+                delegations += 1
             if t == "start":
                 asyncio.create_task(manager.broadcast({
                     "agent": event["agent"].upper(),
@@ -359,6 +380,12 @@ async def orchestrate_endpoint(request: Request, body: dict, user: dict = Depend
                     "time": "",
                     "ts": "",
                 }))
+        db.log_audit(
+            email, "orchestrate", agent, api_model,
+            len(prompt) // 4, 0,
+            int(time.time() * 1000) - t_start,
+            f"delegations={delegations}",
+        )
 
     return StreamingResponse(stream(), media_type="application/x-ndjson")
 
@@ -382,7 +409,25 @@ def conversations_get(conv_id: str, user: dict = Depends(require_auth)):
 @app.delete("/conversations/{conv_id}")
 def conversations_delete(conv_id: str, user: dict = Depends(require_auth)):
     ok = db.delete_conversation(conv_id)
+    email = (user or {}).get("email", "") if isinstance(user, dict) else ""
+    db.log_audit(email, "conversation_delete", meta=conv_id)
     return {"ok": ok}
+
+
+# ============================================================
+# ADMIN — Audit log + usage analytics dashboard
+# ============================================================
+@app.get("/admin/stats")
+def admin_stats(user: dict = Depends(require_auth), days: int = 7):
+    # Clamp window to sane range so a malicious query can't scan all of history
+    days = max(1, min(days, 90))
+    return db.audit_stats(days)
+
+
+@app.get("/admin/audit")
+def admin_audit(user: dict = Depends(require_auth), limit: int = 50):
+    limit = max(1, min(limit, 500))
+    return db.audit_recent(limit)
 
 
 @app.patch("/conversations/{conv_id}")
