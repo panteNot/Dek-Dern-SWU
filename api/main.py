@@ -13,6 +13,19 @@ import db
 
 load_dotenv()
 
+# Sentry — error tracking (optional, skip if DSN not set)
+_sentry_dsn = os.getenv("SENTRY_DSN")
+if _sentry_dsn:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.starlette import StarletteIntegration
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        integrations=[StarletteIntegration(), FastApiIntegration()],
+        traces_sample_rate=0.1,
+        before_send=lambda e, h: (e.get("request", {}).get("headers", {}).pop("authorization", None), e)[1],
+    )
+
 app = FastAPI(title="NEO Labs API", version="0.3.0")
 
 # Rate limiter — protects $$$ endpoints from abuse
@@ -102,6 +115,12 @@ MODELS = {
     "claude-sonnet-4-6",
     "claude-haiku-4-5-20251001",
 }
+
+
+@app.get("/config")
+def public_config():
+    """Public config for frontend — safe to expose (no secrets)."""
+    return {"sentry_dsn": os.getenv("SENTRY_DSN_PUBLIC", "")}
 
 
 @app.get("/health")
