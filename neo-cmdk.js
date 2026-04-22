@@ -6,6 +6,13 @@
 (function () {
   'use strict';
 
+  /* ----- OS-AWARE MODIFIER LABEL --------------------------
+     Mac users see "⌘K", Windows/Linux see "Ctrl+K".
+     Functionality (metaKey || ctrlKey) already works on both. */
+  const IS_MAC = /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '');
+  const MOD = IS_MAC ? '⌘' : 'Ctrl+';
+  const MOD_LABEL = IS_MAC ? '⌘K' : 'Ctrl+K';
+
   /* ----- ACTION REGISTRY ---------------------------------- */
   const ACTIONS = [
     /* --- Pages --- */
@@ -36,7 +43,7 @@
     { group: 'Actions', id: 'x-export',  label: 'Export conversation → Markdown', hint: '', icon: '↓', run: () => exportMD() },
     { group: 'Actions', id: 'x-theme',   label: 'Toggle theme (dark / light)', hint: '',  icon: '☾', run: () => toggleTheme() },
     { group: 'Actions', id: 'x-logout',  label: 'Log out',               hint: '⎋', icon: '↗', run: () => logout() },
-    { group: 'Actions', id: 'x-reload',  label: 'Reload page',           hint: '⌘R', icon: '↻', run: () => location.reload() },
+    { group: 'Actions', id: 'x-reload',  label: 'Reload page',           hint: MOD + 'R', icon: '↻', run: () => location.reload() },
     { group: 'Actions', id: 'x-copyurl', label: 'Copy current URL',      hint: '',  icon: '⎘', run: () => copyUrl() },
     { group: 'Actions', id: 'x-home',    label: 'Back to office',        hint: '',  icon: '⌂', run: () => nav('neo-labs-office.html') },
   ];
@@ -244,14 +251,14 @@
       <div class="cmdk-backdrop" id="cmdkBack">
         <div class="cmdk-panel" role="dialog" aria-label="Command Palette">
           <div class="cmdk-search">
-            <span class="icon">⌘</span>
-            <input id="cmdkInput" type="text" placeholder="Type a command or search… (⌘K)" autocomplete="off" spellcheck="false" />
+            <span class="icon">${IS_MAC ? '⌘' : '⌃'}</span>
+            <input id="cmdkInput" type="text" placeholder="Type a command or search… (${MOD_LABEL})" autocomplete="off" spellcheck="false" />
             <span class="kbd">ESC</span>
           </div>
           <div class="cmdk-list" id="cmdkList"></div>
           <div class="cmdk-foot">
             <div><span class="key">↑↓</span>navigate  <span class="key">↵</span>select</div>
-            <div><span class="key">⌘K</span>toggle</div>
+            <div><span class="key">${MOD_LABEL}</span>toggle</div>
           </div>
         </div>
       </div>
@@ -384,6 +391,6 @@
   /* ----- FIRST-TIME HINT (shows for 5s on first page load) */
   if (!sessionStorage.getItem('neo_cmdk_seen')) {
     sessionStorage.setItem('neo_cmdk_seen', '1');
-    setTimeout(() => toast('⌘K เปิด Command Palette'), 800);
+    setTimeout(() => toast(MOD_LABEL + ' เปิด Command Palette'), 800);
   }
 })();

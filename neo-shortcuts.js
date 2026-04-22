@@ -6,18 +6,22 @@
 (function () {
   'use strict';
 
+  // OS-aware: show the modifier the user actually presses.
+  const IS_MAC = /Mac|iPhone|iPad|iPod/i.test(navigator.platform || navigator.userAgent || '');
+  const MOD = IS_MAC ? '⌘' : 'Ctrl';
+
   const SHORTCUTS = [
     { group: 'Navigation', items: [
-      { keys: ['⌘', 'K'], desc: 'Open command palette' },
-      { keys: ['Ctrl/⌘', 'H'], desc: 'Toggle conversations panel' },
+      { keys: [MOD, 'K'], desc: 'Open command palette' },
+      { keys: [MOD, 'H'], desc: 'Toggle conversations panel' },
       { keys: ['Esc'], desc: 'Close any panel / modal' },
       { keys: ['?'], desc: 'Show this cheatsheet' },
     ]},
     { group: 'Chat', items: [
       { keys: ['Enter'], desc: 'Send message' },
       { keys: ['Shift', 'Enter'], desc: 'New line in message' },
-      { keys: ['Ctrl/⌘', 'E'], desc: 'Export current conversation to Markdown' },
-      { keys: ['Ctrl/⌘', '/'], desc: 'Focus message input' },
+      { keys: [MOD, 'E'], desc: 'Export current conversation to Markdown' },
+      { keys: [MOD, '/'], desc: 'Focus message input' },
     ]},
     { group: 'Office / Council', items: [
       { keys: ['🎭', 'TEAM'], desc: 'Toggle multi-agent orchestration (topbar)' },

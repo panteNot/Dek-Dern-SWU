@@ -103,6 +103,10 @@ body {
   border-color: transparent;
   box-shadow: 0 4px 12px -4px var(--neo);
 }
+/* Tabs moved to ☰ menu — still rendered so switchView can activate them,
+   but not visible in topbar. Becomes visible when ☰ item triggers switch. */
+.tab.hidden-tab { display: none; }
+.tab.hidden-tab.active { display: inline-flex; }
 
 .status-chip {
   display: inline-flex;
@@ -1548,7 +1552,8 @@ body {
 </script>
 <script src="neo-auth.js?v=2"></script>
 <script src="neo-theme.js?v=1"></script>
-<script src="neo-cmdk.js?v=5" defer></script>
+<script src="neo-cmdk.js?v=6" defer></script>
+<script src="neo-menu.js?v=3" defer></script>
 <script src="neo-shortcuts.js?v=1" defer></script>
 <script src="neo-prompts.js?v=3" defer></script>
 </head>
@@ -1574,20 +1579,19 @@ body {
 
 <div class="topbar">
   <button class="conv-btn" id="convOpenBtn" title="Conversations (Ctrl/⌘+H)">💬</button>
-  <a class="conv-btn" href="neo-labs-admin.html" title="Admin / Analytics" style="text-decoration:none;">📈</a>
-  <a class="conv-btn" href="neo-labs-settings.html" title="Settings" style="text-decoration:none;">⚙</a>
   <button class="orch-btn" id="orchToggle" title="Delegate mode — NEO ส่งต่อให้ specialist 1 คน (single thread)">🎭 DELEGATE</button>
   <a class="orch-btn" href="neo-labs-council.html" title="Council — 3 agents ตอบพร้อมกัน (parallel)" style="text-decoration:none;">🏛 COUNCIL</a>
   <div class="logo">NEO LABS</div>
   <div class="tabs">
     <button class="tab active" data-view="office">🏢 OFFICE</button>
     <button class="tab" data-view="terminal">💻 TERMINAL</button>
-    <button class="tab" data-view="history">📜 HISTORY</button>
     <button class="tab" data-view="data">📊 DATA</button>
-    <button class="tab" data-view="files">📁 FILES</button>
-    <button class="tab" data-view="editor">⌨ EDITOR</button>
-    <button class="tab" data-view="canvas">🎨 CANVAS</button>
-    <button class="tab" data-view="viewer3d">🌐 3D</button>
+    <!-- HISTORY / FILES / EDITOR / CANVAS / 3D moved to ☰ menu to ease the topbar -->
+    <button class="tab hidden-tab" data-view="history">📜 HISTORY</button>
+    <button class="tab hidden-tab" data-view="files">📁 FILES</button>
+    <button class="tab hidden-tab" data-view="editor">⌨ EDITOR</button>
+    <button class="tab hidden-tab" data-view="canvas">🎨 CANVAS</button>
+    <button class="tab hidden-tab" data-view="viewer3d">🌐 3D</button>
   </div>
   <div class="status-chip" id="statusChip"><span class="dot"></span><span id="statusText">API CONNECTED</span></div>
   <div class="spacer"></div>
@@ -1761,7 +1765,7 @@ body {
       </div>
       <div class="dock-attachments" id="attachBar" style="display:none;"></div>
       <div class="dock-row">
-        <button class="dock-attach" id="attachBtn" title="Attach image or PDF (⌘+Shift+U)">📎</button>
+        <button class="dock-attach" id="attachBtn" title="Attach image or PDF (Ctrl/⌘+Shift+U)">📎</button>
         <input type="file" id="attachInput" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf" multiple style="display:none;" />
         <textarea class="dock-input" id="cmd" placeholder="พิมพ์ข้อความ... (Enter = ส่ง | Shift+Enter = ขึ้นบรรทัดใหม่ | ลากไฟล์มาวาง)" rows="1"></textarea>
         <button class="dock-send" id="sendBtn"><span>ส่ง</span><span>→</span></button>
@@ -2748,6 +2752,23 @@ function switchView(name) {
 document.querySelectorAll('.tab').forEach(t => {
   t.addEventListener('click', () => switchView(t.dataset.view));
 });
+
+// Hamburger menu emits neo:view so "hidden" tabs (history/files/editor/canvas/3D)
+// can still be activated from the ☰ drawer.
+window.addEventListener('neo:view', (e) => {
+  const v = e.detail && e.detail.view;
+  if (v) switchView(v);
+});
+
+// Deep-link support: ?view=history etc. (so ☰ menu from other pages works)
+(function () {
+  const q = new URLSearchParams(location.search).get('view');
+  const valid = ['office','terminal','history','data','files','editor','canvas','viewer3d'];
+  if (q && valid.includes(q)) {
+    // Defer so target view's init hooks are already registered.
+    setTimeout(() => switchView(q), 50);
+  }
+})();
 
 /* ============================================================
    HEALTH CHECK
