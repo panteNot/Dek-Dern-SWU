@@ -116,12 +116,22 @@ AGENTS = {
 # Append shared budget policy to every agent so behavior is uniform
 AGENTS = {k: v + BUDGET_POLICY for k, v in AGENTS.items()}
 
-# Model whitelist — กัน frontend ส่ง model ปลอม
-MODELS = {
-    "claude-opus-4-7",
-    "claude-sonnet-4-6",
-    "claude-haiku-4-5-20251001",
+# Model whitelist — keys are UI-facing ids (what frontend sends);
+# values are the REAL Anthropic API model ids to ship in the request body.
+# 'claude-opus-4-7' / 'claude-sonnet-4-6' are internal aliases used across the
+# Claude Code ecosystem — the public API does not accept them, so we map
+# every alias to a concrete dated model id here.
+MODEL_ALIASES = {
+    "claude-opus-4-7":            "claude-opus-4-5-20250929",
+    "claude-sonnet-4-6":          "claude-sonnet-4-5-20250929",
+    "claude-haiku-4-5-20251001":  "claude-haiku-4-5-20251001",
 }
+MODELS = set(MODEL_ALIASES.keys())
+
+
+def resolve_model(alias: str) -> str:
+    """Translate UI model id to the concrete Anthropic API model id."""
+    return MODEL_ALIASES.get(alias, alias)
 
 
 @app.get("/config")
@@ -214,12 +224,21 @@ async def chat(request: Request, body: dict, user: dict = Depends(require_auth))
     if model not in MODELS:
         return {"error": f"unknown model: {model}"}
 
-    # Load prior history (Claude expects alternating user/assistant)
+    # Load prior history (Claude expects alternating user/assistant, non-empty text)
     history = []
     if conv_id:
         existing = db.get_conversation(conv_id)
         if existing:
-            history = db.get_history(conv_id)
+            raw_hist = db.get_history(conv_id)
+            # Filter: drop empty-content rows (Anthropic 400s on empty text blocks)
+            # Also drop any trailing 'user' turn — happens when a prior request
+            # persisted the user message then the stream errored, leaving the
+            # history ending in 'user'. Sending another 'user' on top causes
+            # "roles must alternate" 400s.
+            cleaned = [m for m in raw_hist if (m.get("content") or "").strip()]
+            while cleaned and cleaned[-1].get("role") == "user":
+                cleaned.pop()
+            history = cleaned
         else:
             conv_id = None  # invalid id, treat as new
 
@@ -228,32 +247,47 @@ async def chat(request: Request, body: dict, user: dict = Depends(require_auth))
         title = prompt[:80].replace("\n", " ").strip() or "New chat"
         conv_id = db.create_conversation(title, agent, model)
 
-    if persist:
-        db.append_message(conv_id, "user", prompt, "")
-
     messages = history + [{"role": "user", "content": prompt}]
     api_key = anthropic_key()
     if not api_key.startswith("sk-"):
         return {"error": "ANTHROPIC_API_KEY malformed — check Railway Variables (no leading '=' or spaces)"}
     client = anthropic.AsyncAnthropic(api_key=api_key)
+    api_model = resolve_model(model)  # UI alias → real Anthropic model id
 
     async def generate():
         full = ""
+        stream_opened = False
         # Send conv_id to frontend in a header-like first line (JSON-prefixed)
         if conv_id:
             yield f"\u0000CONV:{conv_id}\u0000"
+        # Persist user turn only after we know we're going to actually stream —
+        # keeps DB clean if validation/auth-ish issues surface before streaming.
+        if persist and conv_id:
+            try:
+                db.append_message(conv_id, "user", prompt, "")
+            except Exception as e:
+                yield f"\n\n⚠️ db error (user turn): {type(e).__name__}: {str(e)[:200]}"
+                return
         try:
             async with client.messages.stream(
-                model=model,
+                model=api_model,
                 max_tokens=800,  # brief-by-default; long form costs money
                 system=AGENTS[agent],
                 messages=messages,
             ) as stream:
+                stream_opened = True
                 async for text in stream.text_stream:
                     full += text
                     yield text
-        except Exception as e:
-            # Surface stream errors to the frontend so the user sees WHY it failed
+        # Catch BaseException-derived groups too (anyio wraps httpx errors in
+        # BaseExceptionGroup on Python 3.11+, which `except Exception` misses
+        # — that's why earlier error yields never surfaced to the user).
+        # Note: CancelledError is a BaseException — re-raise so client disconnects
+        # don't get swallowed into a fake error line.
+        except BaseException as e:
+            import asyncio as _aio
+            if isinstance(e, _aio.CancelledError):
+                raise
             import traceback, sys
             traceback.print_exc(file=sys.stderr)
             if _sentry_dsn:
@@ -262,10 +296,29 @@ async def chat(request: Request, body: dict, user: dict = Depends(require_auth))
                     sentry_sdk.capture_exception(e)
                 except Exception:
                     pass
-            yield f"\n\n⚠️ stream error: {type(e).__name__}: {str(e)[:300]}"
+            # Unwrap ExceptionGroup → show the first underlying error (more useful)
+            inner = e
+            if hasattr(e, "exceptions") and getattr(e, "exceptions", None):
+                try:
+                    inner = e.exceptions[0]
+                except Exception:
+                    pass
+            yield (
+                f"\n\n⚠️ stream error: {type(inner).__name__}: {str(inner)[:300]} "
+                f"(model={api_model}, opened={stream_opened})"
+            )
             return
-        if persist and conv_id and full:
-            db.append_message(conv_id, "assistant", full, agent)
+        # Safety net: API returned 200 but produced zero text (e.g. stop_reason
+        # = end_turn with empty content). Without this the frontend shows a
+        # blank bubble and the user thinks the app is broken.
+        if not full:
+            yield "⚠️ empty response from API (no text chunks). Try again or switch model."
+            return
+        if persist and conv_id:
+            try:
+                db.append_message(conv_id, "assistant", full, agent)
+            except Exception:
+                pass  # stream already sent; persist failure shouldn't corrupt UX
 
     return StreamingResponse(generate(), media_type="text/plain")
 
@@ -289,8 +342,10 @@ async def orchestrate_endpoint(request: Request, body: dict, user: dict = Depend
 
     from orchestrator import orchestrate
 
+    api_model = resolve_model(model)  # UI alias → real Anthropic model id
+
     async def stream():
-        async for event in orchestrate(prompt, AGENTS, agent, model):
+        async for event in orchestrate(prompt, AGENTS, agent, api_model):
             yield json.dumps(event, ensure_ascii=False) + "\n"
             # Also broadcast handoff/done events to activity feed
             t = event.get("type")
@@ -409,16 +464,25 @@ async def generate_3d(request: Request, body: dict, user: dict = Depends(require
     if not prompt:
         return {"error": "no prompt"}
     client = anthropic.AsyncAnthropic(api_key=anthropic_key())
+    api_model = resolve_model(body.get("model", "claude-sonnet-4-6"))
 
     async def generate():
-        async with client.messages.stream(
-            model=body.get("model", "claude-sonnet-4-6"),
-            max_tokens=2500,
-            system=THREEJS_SYSTEM,
-            messages=[{"role": "user", "content": prompt}],
-        ) as stream:
-            async for text in stream.text_stream:
-                yield text
+        try:
+            async with client.messages.stream(
+                model=api_model,
+                max_tokens=2500,
+                system=THREEJS_SYSTEM,
+                messages=[{"role": "user", "content": prompt}],
+            ) as stream:
+                async for text in stream.text_stream:
+                    yield text
+        except BaseException as e:
+            import asyncio as _aio
+            if isinstance(e, _aio.CancelledError):
+                raise
+            import traceback, sys
+            traceback.print_exc(file=sys.stderr)
+            yield f"\n// stream error: {type(e).__name__}: {str(e)[:300]}"
 
     return StreamingResponse(generate(), media_type="text/plain")
 
