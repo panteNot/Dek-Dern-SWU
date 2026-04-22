@@ -194,10 +194,10 @@ async def ws_activity(ws: WebSocket):
 async def chat(request: Request, body: dict, user: dict = Depends(require_auth)):
     # รับ prompt + agent + model + optional conv_id → stream Claude response
     # Auto-persist user+assistant turns to SQLite if conv_id provided
-    prompt = body.get("prompt", "").strip()
-    agent = body.get("agent", "neo").lower()
-    model = body.get("model", "claude-haiku-4-5-20251001")
-    conv_id = body.get("conv_id", "").strip() or None
+    prompt = (body.get("prompt") or "").strip()
+    agent = (body.get("agent") or "neo").lower()
+    model = body.get("model") or "claude-haiku-4-5-20251001"
+    conv_id = (body.get("conv_id") or "").strip() or None
     persist = bool(body.get("persist", True))  # frontend can opt-out
 
     if not prompt:
@@ -253,9 +253,9 @@ async def chat(request: Request, body: dict, user: dict = Depends(require_auth))
 @app.post("/orchestrate")
 @limiter.limit("5/minute")
 async def orchestrate_endpoint(request: Request, body: dict, user: dict = Depends(require_auth)):
-    prompt = body.get("prompt", "").strip()
-    agent = body.get("agent", "neo").lower()
-    model = body.get("model", "claude-sonnet-4-6")
+    prompt = (body.get("prompt") or "").strip()
+    agent = (body.get("agent") or "neo").lower()
+    model = body.get("model") or "claude-sonnet-4-6"
 
     if not prompt:
         return {"error": "no prompt"}
@@ -382,7 +382,7 @@ THREEJS_SYSTEM = (
 @app.post("/gen3d")
 @limiter.limit("10/minute")
 async def generate_3d(request: Request, body: dict, user: dict = Depends(require_auth)):
-    prompt = body.get("prompt", "").strip()
+    prompt = (body.get("prompt") or "").strip()
     if not prompt:
         return {"error": "no prompt"}
     client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
