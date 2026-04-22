@@ -425,6 +425,28 @@ def conversations_delete(conv_id: str, user: dict = Depends(require_auth)):
 # ============================================================
 # ADMIN — Audit log + usage analytics dashboard
 # ============================================================
+@app.get("/me/export")
+def me_export(user: dict = Depends(require_auth)):
+    """Dump all the user's conversations as JSON. No filter by user yet
+    (single-tenant), so this returns everything in the db."""
+    email = (user or {}).get("email", "") if isinstance(user, dict) else ""
+    payload = {
+        "exported_at": db.now_ms(),
+        "user_email": email,
+        "conversations": db.export_all_conversations(),
+    }
+    db.log_audit(email, "data_export", meta=f"convs={len(payload['conversations'])}")
+    return payload
+
+
+@app.post("/me/delete-all-conversations")
+def me_delete_all_conversations(user: dict = Depends(require_auth)):
+    email = (user or {}).get("email", "") if isinstance(user, dict) else ""
+    n = db.delete_all_conversations()
+    db.log_audit(email, "data_wipe", meta=f"deleted={n}")
+    return {"deleted": n}
+
+
 @app.get("/admin/stats")
 def admin_stats(user: dict = Depends(require_auth), days: int = 7):
     # Clamp window to sane range so a malicious query can't scan all of history

@@ -141,6 +141,34 @@ def append_message(conv_id: str, role: str, content: str, agent: str = "") -> in
         return cur.lastrowid
 
 
+def delete_all_conversations() -> int:
+    """Wipe every conversation and its messages. Returns count deleted."""
+    with conn() as c:
+        n = c.execute("SELECT COUNT(*) n FROM conversations").fetchone()["n"]
+        c.execute("DELETE FROM conversations")
+        return n
+
+
+def export_all_conversations() -> list[dict]:
+    """Full dump of every conversation + its messages. For user data export."""
+    with conn() as c:
+        convs = c.execute(
+            "SELECT id, title, agent, model, created_at, updated_at "
+            "FROM conversations ORDER BY updated_at DESC"
+        ).fetchall()
+        out = []
+        for row in convs:
+            conv = dict(row)
+            msgs = c.execute(
+                "SELECT role, content, agent, created_at "
+                "FROM messages WHERE conv_id = ? ORDER BY created_at ASC, id ASC",
+                (conv["id"],),
+            ).fetchall()
+            conv["messages"] = [dict(m) for m in msgs]
+            out.append(conv)
+        return out
+
+
 def delete_conversation(conv_id: str) -> bool:
     with conn() as c:
         cur = c.execute("DELETE FROM conversations WHERE id = ?", (conv_id,))
