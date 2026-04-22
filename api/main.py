@@ -216,9 +216,25 @@ async def chat(request: Request, body: dict, user: dict = Depends(require_auth))
     model = body.get("model") or "claude-haiku-4-5-20251001"
     conv_id = (body.get("conv_id") or "").strip() or None
     persist = bool(body.get("persist", True))  # frontend can opt-out
+    attachments = body.get("attachments") or []  # [{type, media_type, data, name}]
 
-    if not prompt:
+    if not prompt and not attachments:
         return {"error": "no prompt"}
+    if not isinstance(attachments, list) or len(attachments) > 5:
+        return {"error": "attachments must be list ≤ 5"}
+    # Reject oversized payloads early — base64 is ~1.37x the raw size, so
+    # 20MB here ≈ 14.5MB actual bytes per file. Total POST is capped by uvicorn.
+    allowed_img = {"image/png", "image/jpeg", "image/webp", "image/gif"}
+    allowed_doc = {"application/pdf"}
+    for a in attachments:
+        if not isinstance(a, dict):
+            return {"error": "each attachment must be an object"}
+        if a.get("type") == "image" and a.get("media_type") not in allowed_img:
+            return {"error": f"unsupported image type: {a.get('media_type')}"}
+        if a.get("type") == "document" and a.get("media_type") not in allowed_doc:
+            return {"error": f"unsupported doc type: {a.get('media_type')}"}
+        if len(a.get("data") or "") > 20_000_000:
+            return {"error": "attachment too large (max ~14MB)"}
     if agent not in AGENTS:
         return {"error": f"unknown agent: {agent}"}
     if model not in MODELS:
@@ -247,7 +263,27 @@ async def chat(request: Request, body: dict, user: dict = Depends(require_auth))
         title = prompt[:80].replace("\n", " ").strip() or "New chat"
         conv_id = db.create_conversation(title, agent, model)
 
-    messages = history + [{"role": "user", "content": prompt}]
+    # Build user content. Plain string when no attachments (cheapest path);
+    # otherwise a list of blocks per Anthropic Messages API multimodal schema.
+    if attachments:
+        user_content = []
+        for a in attachments:
+            if a.get("type") == "image":
+                user_content.append({
+                    "type": "image",
+                    "source": {"type": "base64", "media_type": a["media_type"], "data": a["data"]},
+                })
+            elif a.get("type") == "document":
+                user_content.append({
+                    "type": "document",
+                    "source": {"type": "base64", "media_type": a["media_type"], "data": a["data"]},
+                })
+        if prompt:
+            user_content.append({"type": "text", "text": prompt})
+        messages = history + [{"role": "user", "content": user_content}]
+    else:
+        messages = history + [{"role": "user", "content": prompt}]
+
     api_key = anthropic_key()
     if not api_key.startswith("sk-"):
         return {"error": "ANTHROPIC_API_KEY malformed — check Railway Variables (no leading '=' or spaces)"}
@@ -266,7 +302,18 @@ async def chat(request: Request, body: dict, user: dict = Depends(require_auth))
         # keeps DB clean if validation/auth-ish issues surface before streaming.
         if persist and conv_id:
             try:
-                db.append_message(conv_id, "user", prompt, "")
+                # Summarize attachments inline so history replay reads naturally.
+                # We intentionally DO NOT store raw base64 bytes in SQLite — that
+                # would bloat the db. Re-upload if you want vision on next turn.
+                stored = prompt
+                if attachments:
+                    n_img = sum(1 for a in attachments if a.get("type") == "image")
+                    n_doc = sum(1 for a in attachments if a.get("type") == "document")
+                    parts = []
+                    if n_img: parts.append(f"{n_img} image{'s' if n_img > 1 else ''}")
+                    if n_doc: parts.append(f"{n_doc} PDF{'s' if n_doc > 1 else ''}")
+                    stored = (prompt + "\n\n" if prompt else "") + f"[📎 attached: {', '.join(parts)}]"
+                db.append_message(conv_id, "user", stored, "")
             except Exception as e:
                 yield f"\n\n⚠️ db error (user turn): {type(e).__name__}: {str(e)[:200]}"
                 return
