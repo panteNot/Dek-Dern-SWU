@@ -24,8 +24,9 @@ GOOGLE_CLIENT_ID = (
 )
 
 # Email whitelist — only these accounts can call protected endpoints.
-# Override via NEO_EMAIL_WHITELIST env var (comma-separated) in production;
-# default baked in so it just works on first deploy.
+# NEO_EMAIL_WHITELIST env var AUGMENTS the default (used to do override, but
+# that broke shared-access rollouts: a stale env value on Railway was silently
+# locking out newly-added emails). Default list is always active.
 _DEFAULT_WHITELIST = (
     "pantepante72@gmail.com,"
     "chayangkulkongkavitool@gmail.com,"
@@ -33,7 +34,7 @@ _DEFAULT_WHITELIST = (
 )
 WHITELIST = {
     e.strip().lower()
-    for e in (os.getenv("NEO_EMAIL_WHITELIST") or _DEFAULT_WHITELIST).split(",")
+    for e in (_DEFAULT_WHITELIST + "," + (os.getenv("NEO_EMAIL_WHITELIST") or "")).split(",")
     if e.strip()
 }
 
