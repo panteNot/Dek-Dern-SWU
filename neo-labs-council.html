@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Council — NEO Labs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --bg-2: #12121a;
+  --panel: #16161f;
+  --panel-2: #1b1b26;
+  --line: rgba(255,255,255,0.06);
+  --line-strong: rgba(255,255,255,0.12);
+  --fg: #e9e9ef;
+  --muted: #9a9aa8;
+  --dim: #5a5a68;
+
+  --neo:   #ff6b00;
+  --atlas: #00c896;
+  --nova:  #a855f7;
+  --luna:  #ec4899;
+  --pixel: #22c55e;
+  --sage:  #eab308;
+  --rex:   #ef4444;
+  --byte:  #3b82f6;
+  --quill: #94a3b8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* ====== Top bar ====== */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 56px;
+  display: flex; align-items: center; gap: 18px;
+  padding: 0 24px;
+  background: rgba(10, 10, 15, 0.78);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--line);
+  z-index: 20;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700; font-size: 13px; letter-spacing: 1.5px;
+}
+.brand .dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--neo), var(--nova));
+  box-shadow: 0 0 14px var(--neo);
+}
+.brand a { color: inherit; text-decoration: none; }
+.title {
+  font-weight: 700; font-size: 15px; letter-spacing: 0.5px;
+  margin-left: 12px; padding-left: 16px;
+  border-left: 1px solid var(--line-strong);
+}
+.subtitle { color: var(--muted); font-size: 11px; font-weight: 400; margin-left: 6px; }
+.topbar-spacer { flex: 1; }
+.kbd {
+  display: inline-flex; gap: 4px; align-items: center;
+  padding: 4px 10px; border: 1px solid var(--line-strong); border-radius: 6px;
+  font: 500 11px/1 'JetBrains Mono', monospace; color: var(--muted);
+  background: rgba(255,255,255,0.02);
+}
+
+/* ====== Prompt row ====== */
+.prompt-row {
+  position: fixed; top: 56px; left: 0; right: 0;
+  padding: 14px 24px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  display: flex; gap: 10px; align-items: center;
+  z-index: 15;
+}
+.prompt-input {
+  flex: 1;
+  padding: 12px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  color: var(--fg); font-size: 14px; font-family: inherit;
+  outline: none;
+  transition: border-color .15s, background .15s;
+}
+.prompt-input:focus { border-color: var(--nova); background: var(--panel-2); }
+.prompt-input::placeholder { color: var(--dim); }
+.btn {
+  padding: 10px 18px; border: 0; border-radius: 10px;
+  font: 600 13px/1 inherit; cursor: pointer;
+  transition: transform .1s, background .15s, opacity .15s;
+  white-space: nowrap;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--neo), #ff8c42);
+  color: #fff;
+}
+.btn-primary:hover { filter: brightness(1.1); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.3); }
+.btn-ghost {
+  background: transparent; color: var(--muted);
+  border: 1px solid var(--line-strong);
+}
+.btn-ghost:hover { color: var(--fg); border-color: var(--fg); }
+.btn-ghost.add-col { padding: 8px 12px; font-size: 12px; }
+
+/* ====== Council grid ====== */
+.council-wrap {
+  position: fixed; top: 130px; left: 0; right: 0; bottom: 0;
+  padding: 16px 20px 20px;
+  overflow: hidden;
+}
+.council {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  height: 100%;
+}
+.col {
+  display: flex; flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color .2s, transform .15s;
+}
+.col.active {
+  border-color: currentColor;
+  box-shadow: 0 0 0 1px currentColor, 0 10px 30px -10px currentColor;
+}
+
+.col-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--line);
+}
+.col-badge {
+  width: 26px; height: 26px; border-radius: 7px;
+  background: currentColor;
+  display: flex; align-items: center; justify-content: center;
+  font: 800 12px/1 'JetBrains Mono', monospace;
+  color: #0a0a0f;
+  flex-shrink: 0;
+}
+.col-meta { flex: 1; min-width: 0; }
+.col-name {
+  font-weight: 700; font-size: 13px; letter-spacing: 1.5px;
+  color: currentColor;
+}
+.col-role {
+  font-size: 10px; color: var(--muted); font-weight: 500;
+  margin-top: 1px;
+}
+.col-picker {
+  background: transparent; border: 1px solid var(--line-strong);
+  color: var(--fg); padding: 5px 8px; border-radius: 6px;
+  font: 500 11px/1 'JetBrains Mono', monospace; cursor: pointer;
+}
+.col-picker:hover { border-color: currentColor; }
+.col-close {
+  background: transparent; border: 0; color: var(--dim); cursor: pointer;
+  width: 24px; height: 24px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; transition: background .12s, color .12s;
+}
+.col-close:hover { background: rgba(239,68,68,0.14); color: #fca5a5; }
+
+.col-status {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  font: 500 10px/1.4 'JetBrains Mono', monospace;
+  color: var(--muted);
+  letter-spacing: 1px;
+  border-bottom: 1px solid var(--line);
+  min-height: 22px;
+}
+.col-status .pulse {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--dim);
+}
+.col.streaming .col-status .pulse {
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+  animation: pulse 1.1s ease-in-out infinite;
+}
+.col.done .col-status .pulse { background: var(--atlas); }
+@keyframes pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+.col-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  font-size: 13px; line-height: 1.65;
+  white-space: pre-wrap; word-break: break-word;
+}
+.col-body::-webkit-scrollbar { width: 6px; }
+.col-body::-webkit-scrollbar-track { background: transparent; }
+.col-body::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+.col-body::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+.col-body:empty::before {
+  content: 'รอพรอมต์...';
+  color: var(--dim); font-style: italic;
+}
+.col.streaming .col-body::after {
+  content: '▋';
+  color: currentColor;
+  animation: blink 0.8s infinite;
+}
+@keyframes blink { 0%,50% { opacity: 1; } 50.01%,100% { opacity: 0; } }
+.col-foot {
+  padding: 8px 14px;
+  font: 500 10px/1 'JetBrains Mono', monospace;
+  color: var(--dim);
+  border-top: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: center;
+  min-height: 28px;
+}
+
+/* Agent colors (applied as `color` on .col → cascades) */
+.col[data-agent="neo"]   { color: var(--neo); }
+.col[data-agent="atlas"] { color: var(--atlas); }
+.col[data-agent="nova"]  { color: var(--nova); }
+.col[data-agent="luna"]  { color: var(--luna); }
+.col[data-agent="pixel"] { color: var(--pixel); }
+.col[data-agent="sage"]  { color: var(--sage); }
+.col[data-agent="rex"]   { color: var(--rex); }
+.col[data-agent="byte"]  { color: var(--byte); }
+.col[data-agent="quill"] { color: var(--quill); }
+
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--dim); gap: 10px; padding: 40px;
+  height: 100%;
+}
+.empty-state .big { font-size: 18px; font-weight: 700; color: var(--muted); }
+.empty-state .small { font-size: 12px; }
+
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--panel-2); border: 1px solid var(--line-strong);
+  padding: 10px 18px; border-radius: 10px;
+  font-size: 12px; color: var(--fg);
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+  z-index: 30;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+.toast.err { border-color: #ef4444; color: #fca5a5; }
+</style>
+<script src="neo-auth.js?v=2"></script>
+<script src="neo-theme.js?v=1"></script>
+<script src="neo-artifacts.js?v=1" defer></script>
+<script src="neo-cmdk.js?v=5" defer></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span><a href="neo-labs-office.html">NEO LABS</a></div>
+  <div class="title">Agent Council <span class="subtitle">— 3+ agents streaming in parallel</span></div>
+  <div class="topbar-spacer"></div>
+  <div class="kbd">⌘ K</div>
+  <a href="neo-labs-office.html" class="btn btn-ghost" style="text-decoration:none;">← Office</a>
+</div>
+
+<div class="prompt-row">
+  <input id="promptInput" class="prompt-input"
+         placeholder="ถามเดียวกันให้ 3 agents ตอบ... (เช่น 'ควรสร้าง feature X มั้ย?')"
+         autofocus>
+  <select id="modelPicker" class="btn btn-ghost" style="padding:10px 12px;font:500 12px/1 'JetBrains Mono',monospace;">
+    <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — fast</option>
+    <option value="claude-sonnet-4-6">Sonnet 4.6 — balanced</option>
+    <option value="claude-opus-4-7">Opus 4.7 — max</option>
+  </select>
+  <button id="sendBtn" class="btn btn-primary">Ask Council →</button>
+  <button id="addColBtn" class="btn btn-ghost add-col">+ Agent</button>
+  <button id="exportBtn" class="btn btn-ghost add-col" title="Export council → Markdown">↓ .md</button>
+</div>
+
+<div class="council-wrap">
+  <div id="council" class="council"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+/* ==========================================================================
+   Agent Council — parallel multi-agent chat
+   ========================================================================== */
+const API = '';  // same-origin (FastAPI serves both static + API at :8000)
+
+const AGENTS = {
+  neo:   { name: 'NEO',   role: 'CEO / Main',             initial: 'N' },
+  atlas: { name: 'ATLAS', role: 'Chief of Staff / PM',    initial: 'A' },
+  nova:  { name: 'NOVA',  role: 'Research Intelligence',  initial: 'R' },
+  luna:  { name: 'LUNA',  role: 'UX/UI Designer',         initial: 'L' },
+  pixel: { name: 'PIXEL', role: 'Slide Maker',            initial: 'P' },
+  sage:  { name: 'SAGE',  role: 'Study Tutor',            initial: 'S' },
+  rex:   { name: 'REX',   role: "Devil's Advocate",       initial: 'X' },
+  byte:  { name: 'BYTE',  role: 'Code Reviewer',          initial: 'B' },
+  quill: { name: 'QUILL', role: 'Copywriter',             initial: 'Q' },
+};
+
+/* State: list of agent ids currently shown as columns */
+let columns = ['nova', 'rex', 'luna'];   // default triad: research + critique + design
+let activeStreams = [];   // AbortController list — cancel on re-submit
+let lastPrompt = '';      // remember for export
+
+const councilEl = document.getElementById('council');
+const promptInput = document.getElementById('promptInput');
+const modelPicker = document.getElementById('modelPicker');
+const sendBtn = document.getElementById('sendBtn');
+const addColBtn = document.getElementById('addColBtn');
+const exportBtn = document.getElementById('exportBtn');
+
+/* ---- Render ---- */
+function renderCouncil() {
+  councilEl.innerHTML = '';
+  if (!columns.length) {
+    councilEl.innerHTML = `
+      <div class="empty-state">
+        <div class="big">ไม่มี agent ในสภา</div>
+        <div class="small">กด "+ Agent" เพื่อเพิ่ม</div>
+      </div>`;
+    return;
+  }
+  columns.forEach((id, idx) => {
+    const agent = AGENTS[id]; if (!agent) return;
+    const col = document.createElement('div');
+    col.className = 'col';
+    col.dataset.agent = id;
+    col.dataset.idx = idx;
+    col.innerHTML = `
+      <div class="col-head">
+        <div class="col-badge">${agent.initial}</div>
+        <div class="col-meta">
+          <div class="col-name">${agent.name}</div>
+          <div class="col-role">${agent.role}</div>
+        </div>
+        <select class="col-picker">
+          ${Object.keys(AGENTS).map(a =>
+            `<option value="${a}"${a===id?' selected':''}>${AGENTS[a].name}</option>`
+          ).join('')}
+        </select>
+        <button class="col-close" title="ลบ column">×</button>
+      </div>
+      <div class="col-status"><span class="pulse"></span><span class="status-text">พร้อมรับคำถาม</span></div>
+      <div class="col-body"></div>
+      <div class="col-foot"><span class="tokens">—</span><span class="timing">—</span></div>
+    `;
+    col.querySelector('.col-picker').addEventListener('change', e => {
+      columns[idx] = e.target.value;
+      renderCouncil();
+    });
+    col.querySelector('.col-close').addEventListener('click', () => {
+      columns.splice(idx, 1);
+      renderCouncil();
+    });
+    councilEl.appendChild(col);
+  });
+}
+
+/* ---- Submit ---- */
+async function ask() {
+  const prompt = promptInput.value.trim();
+  if (!prompt) { promptInput.focus(); return; }
+  if (!columns.length) { toast('เพิ่ม agent ก่อนถาม', 'err'); return; }
+
+  /* Cancel previous streams */
+  activeStreams.forEach(c => { try { c.abort(); } catch {} });
+  activeStreams = [];
+  lastPrompt = prompt;
+
+  const model = modelPicker.value;
+  sendBtn.disabled = true;
+  sendBtn.textContent = 'Asking...';
+
+  /* Reset all column bodies */
+  const cols = Array.from(councilEl.querySelectorAll('.col'));
+  cols.forEach(col => {
+    col.classList.remove('done');
+    col.classList.add('active', 'streaming');
+    col.querySelector('.col-body').textContent = '';
+    col.querySelector('.status-text').textContent = 'กำลังคิด...';
+    col.querySelector('.tokens').textContent = '—';
+    col.querySelector('.timing').textContent = '—';
+    const oldPills = col.querySelector('.col-pills');
+    if (oldPills) oldPills.remove();
+  });
+
+  /* Fire all in parallel */
+  const promises = cols.map(col => streamAgent(col, prompt, model));
+  await Promise.allSettled(promises);
+
+  sendBtn.disabled = false;
+  sendBtn.textContent = 'Ask Council →';
+}
+
+async function streamAgent(col, prompt, model) {
+  const agent = col.dataset.agent;
+  const body = col.querySelector('.col-body');
+  const statusText = col.querySelector('.status-text');
+  const tokensEl = col.querySelector('.tokens');
+  const timingEl = col.querySelector('.timing');
+
+  const ctrl = new AbortController();
+  activeStreams.push(ctrl);
+
+  const started = performance.now();
+  let charCount = 0;
+
+  try {
+    const res = await fetch(`${API}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, agent, model }),
+      signal: ctrl.signal,
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`${res.status}: ${err.slice(0, 200)}`);
+    }
+
+    statusText.textContent = 'Streaming...';
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      body.textContent += chunk;
+      charCount += chunk.length;
+      body.scrollTop = body.scrollHeight;
+      tokensEl.textContent = `${charCount} chars`;
+    }
+    col.classList.remove('streaming'); col.classList.add('done');
+    statusText.textContent = '✓ เสร็จแล้ว';
+    renderArtifactPills(col);
+  } catch (e) {
+    col.classList.remove('streaming');
+    if (e.name === 'AbortError') {
+      statusText.textContent = 'ยกเลิก';
+    } else {
+      statusText.textContent = 'Error';
+      body.textContent = '⚠ ' + (e.message || 'stream failed');
+    }
+  } finally {
+    const ms = Math.round(performance.now() - started);
+    timingEl.textContent = ms < 1000 ? `${ms}ms` : `${(ms/1000).toFixed(1)}s`;
+  }
+}
+
+/* ---- Artifact pills ---- */
+function renderArtifactPills(col) {
+  if (!window.NeoArtifacts) return;
+  const body = col.querySelector('.col-body');
+  const foot = col.querySelector('.col-foot');
+  const agent = col.dataset.agent;
+  const text = body.textContent || '';
+  const blocks = NeoArtifacts.scan(text);
+  /* Also offer "View as markdown" for the whole response */
+  const pills = [];
+  blocks.forEach((b, i) => pills.push({
+    label: `${b.lang || 'text'} · ${b.content.split(/\n/).length}L`,
+    art:   { title: `${AGENTS[agent].name} · block ${i+1}`, lang: b.lang, content: b.content, author: AGENTS[agent].name }
+  }));
+  pills.push({
+    label: 'full response · md',
+    art:   { title: `${AGENTS[agent].name} · response`, lang: 'md', content: text, author: AGENTS[agent].name }
+  });
+  /* Clear existing pill row + append new one ABOVE foot */
+  const prevPills = col.querySelector('.col-pills');
+  if (prevPills) prevPills.remove();
+  const host = document.createElement('div');
+  host.className = 'col-pills';
+  host.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;padding:6px 12px 0;';
+  pills.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'neo-arts-pill';
+    btn.innerHTML = `<span class="na-p-ico">◇</span><span>${p.label}</span>`;
+    btn.addEventListener('click', () => NeoArtifacts.open(p.art));
+    host.appendChild(btn);
+  });
+  foot.parentNode.insertBefore(host, foot);
+}
+
+/* ---- Add column ---- */
+addColBtn.addEventListener('click', () => {
+  const unused = Object.keys(AGENTS).find(a => !columns.includes(a));
+  if (!unused) { toast('ครบทุก agent แล้ว', 'err'); return; }
+  if (columns.length >= 6) { toast('max 6 columns', 'err'); return; }
+  columns.push(unused);
+  renderCouncil();
+});
+
+/* ---- Keyboard ---- */
+promptInput.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); ask(); }
+  else if (e.key === 'Enter' && !e.shiftKey)          { e.preventDefault(); ask(); }
+});
+sendBtn.addEventListener('click', ask);
+
+/* ---- Export council → Markdown ---- */
+function exportCouncilMD() {
+  const cols = Array.from(councilEl.querySelectorAll('.col'));
+  const responses = cols.map(col => {
+    const id = col.dataset.agent;
+    const agent = AGENTS[id] || { name: id.toUpperCase(), role: '' };
+    const body = (col.querySelector('.col-body')?.textContent || '').trim();
+    const tokens = col.querySelector('.tokens')?.textContent || '';
+    const timing = col.querySelector('.timing')?.textContent || '';
+    return { id, agent, body, tokens, timing };
+  });
+  const hasAny = responses.some(r => r.body.length > 0);
+  if (!hasAny) { toast('ยังไม่มีคำตอบให้ export', 'err'); return; }
+
+  const ts = new Date();
+  const when = ts.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const model = modelPicker.value.replace('claude-', '').replace('-20251001', '');
+
+  const lines = [];
+  lines.push(`# Agent Council — Session\n`);
+  lines.push(`- **Date:** ${ts.toLocaleString()}`);
+  lines.push(`- **Model:** ${model}`);
+  lines.push(`- **Agents:** ${responses.map(r => r.agent.name).join(', ')}`);
+  lines.push(`\n---\n`);
+  lines.push(`## Prompt\n`);
+  lines.push((lastPrompt || '(no prompt recorded)') + '\n');
+  lines.push(`\n---\n`);
+  responses.forEach(r => {
+    lines.push(`## ${r.agent.name} — ${r.agent.role}`);
+    lines.push(`*${r.tokens} · ${r.timing}*\n`);
+    lines.push(r.body || '_(empty)_');
+    lines.push(`\n---\n`);
+  });
+
+  const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `neo-council-${when}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Exported ✓');
+}
+exportBtn.addEventListener('click', exportCouncilMD);
+
+/* ---- Toast ---- */
+function toast(msg, kind = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (kind === 'err' ? 'err' : '');
+  setTimeout(() => { t.className = 'toast ' + (kind === 'err' ? 'err' : ''); }, 2200);
+}
+
+/* ---- Init ---- */
+renderCouncil();
+</script>
+</body>
+</html>

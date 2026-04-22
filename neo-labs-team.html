@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>NEO LABS — Team Playground</title>
+<style>
+  /* ============================================
+     DESIGN TOKENS
+     ============================================ */
+  :root {
+    --bg: #0a0a0f;
+    --bg-2: #141420;
+    --fg: #e8e8e8;
+    --muted: #8a8a98;
+    --border: rgba(255,255,255,0.08);
+    --card: rgba(255,255,255,0.03);
+    --px: 6px;           /* size of one "pixel" */
+
+    /* character palette */
+    --neo: #ff6b35;      /* orange */
+    --atlas: #14b8a6;    /* teal */
+    --nova: #a855f7;     /* purple */
+    --luna: #ec4899;     /* pink */
+    --pixel: #22c55e;    /* green */
+    --sage: #eab308;     /* yellow */
+    --rex: #ef4444;      /* red */
+    --byte: #3b82f6;     /* blue */
+    --quill: #e5e5e5;    /* white */
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding: 48px 24px 120px;
+  }
+
+  /* ============================================
+     HEADER
+     ============================================ */
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .header h1 {
+    font-size: 48px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    background: linear-gradient(90deg, var(--neo), var(--luna), var(--nova));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 12px;
+  }
+
+  .header p {
+    color: var(--muted);
+    font-size: 14px;
+    letter-spacing: 2px;
+  }
+
+  /* ============================================
+     TEAM GRID
+     ============================================ */
+  .grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 64px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  .card .stage {
+    height: 140px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .card .name {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+
+  .card .role {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* name color per character */
+  .card[data-id="neo"]   .name { color: var(--neo); }
+  .card[data-id="atlas"] .name { color: var(--atlas); }
+  .card[data-id="nova"]  .name { color: var(--nova); }
+  .card[data-id="luna"]  .name { color: var(--luna); }
+  .card[data-id="pixel"] .name { color: var(--pixel); }
+  .card[data-id="sage"]  .name { color: var(--sage); }
+  .card[data-id="rex"]   .name { color: var(--rex); }
+  .card[data-id="byte"]  .name { color: var(--byte); }
+  .card[data-id="quill"] .name { color: var(--quill); }
+
+  /* ============================================
+     PIXEL ROBOT — @speedy_devv style
+     10×10 grid, chunky, ears at top, 2×2 eyes
+     ============================================ */
+  .bot {
+    display: grid;
+    grid-template-columns: repeat(10, var(--px));
+    grid-template-rows: repeat(10, var(--px));
+    gap: 0;
+    animation: idle 2.4s ease-in-out infinite;
+    filter: drop-shadow(0 0 12px currentColor);
+  }
+
+  .bot .p {
+    width: var(--px);
+    height: var(--px);
+    background: currentColor;
+  }
+
+  /* eyes = 2×2 white blocks */
+  .bot .eye {
+    background: #fff;
+    animation: blink 4s infinite;
+    transform-origin: center;
+  }
+
+  /* mouth = horizontal white line */
+  .bot .mouth {
+    background: #fff;
+  }
+
+  /* ============================================
+     ANIMATIONS
+     ============================================ */
+  @keyframes idle {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-4px); }
+  }
+
+  @keyframes blink {
+    0%, 90%, 100% { transform: scaleY(1); }
+    93%, 97%      { transform: scaleY(0.1); }
+  }
+
+  @keyframes walk {
+    0%   { transform: translateX(-120px) scaleX(1); }
+    49%  { transform: translateX(calc(100vw + 120px)) scaleX(1); }
+    50%  { transform: translateX(calc(100vw + 120px)) scaleX(-1); }
+    99%  { transform: translateX(-120px) scaleX(-1); }
+    100% { transform: translateX(-120px) scaleX(1); }
+  }
+
+  @keyframes bobWalk {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    25%      { transform: translateY(-2px) rotate(-2deg); }
+    75%      { transform: translateY(-2px) rotate(2deg); }
+  }
+
+  @keyframes jump {
+    0%   { transform: translateY(0); }
+    30%  { transform: translateY(-40px) scale(1.1, 0.9); }
+    60%  { transform: translateY(0) scale(0.9, 1.1); }
+    100% { transform: translateY(0) scale(1,1); }
+  }
+
+  .card.jumping .bot {
+    animation: jump 0.6s ease-out;
+  }
+
+  /* Hover: speed up idle */
+  .card:hover .bot {
+    animation-duration: 0.8s;
+  }
+
+  .card:hover .bot .eye {
+    animation-duration: 1.5s;
+  }
+
+  /* ============================================
+     PLAYGROUND (walking characters)
+     ============================================ */
+  .playground-label {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 3px;
+    margin-bottom: 16px;
+  }
+
+  .playground {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,0.3));
+    border-top: 1px dashed var(--border);
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .playground .walker {
+    position: absolute;
+    bottom: 20px;
+    animation: walk linear infinite;
+  }
+
+  .playground .walker .bot {
+    animation: bobWalk 0.5s ease-in-out infinite, idle 2s ease-in-out infinite;
+    --px: 4px;  /* smaller on the playground */
+  }
+
+  /* stagger walkers */
+  .walker:nth-child(1) { animation-duration: 24s; animation-delay: 0s; }
+  .walker:nth-child(2) { animation-duration: 28s; animation-delay: -4s; }
+  .walker:nth-child(3) { animation-duration: 22s; animation-delay: -8s; }
+  .walker:nth-child(4) { animation-duration: 30s; animation-delay: -12s; }
+  .walker:nth-child(5) { animation-duration: 26s; animation-delay: -16s; }
+  .walker:nth-child(6) { animation-duration: 32s; animation-delay: -20s; }
+  .walker:nth-child(7) { animation-duration: 25s; animation-delay: -24s; }
+  .walker:nth-child(8) { animation-duration: 29s; animation-delay: -28s; }
+  .walker:nth-child(9) { animation-duration: 27s; animation-delay: -32s; }
+
+  /* ============================================
+     SHADOW under bot
+     ============================================ */
+  .card .stage::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: 48px;
+    height: 6px;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.4), transparent);
+    border-radius: 50%;
+    animation: shadow 2.4s ease-in-out infinite;
+  }
+
+  @keyframes shadow {
+    0%, 100% { transform: scaleX(1); opacity: 0.5; }
+    50%      { transform: scaleX(0.8); opacity: 0.3; }
+  }
+</style>
+<script src="neo-theme.js?v=1"></script>
+<script src="neo-cmdk.js?v=5" defer></script>
+</head>
+<body>
+
+  <div class="header">
+    <h1>NEO LABS</h1>
+    <p>TEAM PLAYGROUND — click me!</p>
+  </div>
+
+  <!-- ========== CARDS GRID ========== -->
+  <div class="grid" id="grid"></div>
+
+  <div class="playground-label">↓ THEY WALK AROUND DOWN HERE ↓</div>
+
+  <!-- ========== PLAYGROUND (walkers) ========== -->
+  <div class="playground" id="playground"></div>
+
+<script>
+/* ============================================
+   CHARACTER DEFINITIONS
+   ใช้ grid 10×12 (width × height)
+   r,c = row, column (1-based)
+   type = p (body) | eye | mouth | dark
+   ============================================ */
+const CHARS = [
+  { id: 'neo',   name: 'NEO',   role: 'CEO / Main',            color: 'var(--neo)' },
+  { id: 'atlas', name: 'ATLAS', role: 'Chief of Staff',         color: 'var(--atlas)' },
+  { id: 'nova',  name: 'NOVA',  role: 'Research',               color: 'var(--nova)' },
+  { id: 'luna',  name: 'LUNA',  role: 'UX/UI Designer',         color: 'var(--luna)' },
+  { id: 'pixel', name: 'PIXEL', role: 'Slide Maker',            color: 'var(--pixel)' },
+  { id: 'sage',  name: 'SAGE',  role: 'Study Tutor',            color: 'var(--sage)' },
+  { id: 'rex',   name: 'REX',   role: "Devil's Advocate",       color: 'var(--rex)' },
+  { id: 'byte',  name: 'BYTE',  role: 'Code Reviewer',          color: 'var(--byte)' },
+  { id: 'quill', name: 'QUILL', role: 'Copywriter',             color: 'var(--quill)' },
+];
+
+/*
+  BODY blueprint (10×10) — @speedy_devv style, same for all
+  Ears on top corners, chunky body, 2 short legs
+
+    r1:  X X . . . . . . X X   ears
+    r2:  X X X X X X X X X X   head top
+    r3:  X X X X X X X X X X
+    r4:  X . . . . . . . . X   (face area r4-r7)
+    r5:  X . . . . . . . . X
+    r6:  X . . . . . . . . X
+    r7:  X . . . . . . . . X
+    r8:  X X X X X X X X X X   body
+    r9:  X X X X X X X X X X
+    r10: X X . X X X X . X X   feet (2 legs gap)
+
+  Face area columns 2-9, rows 4-7 are BLANK in body — filled per character
+*/
+
+const BODY = [
+  // ears (r1)
+  {r:1,c:1},{r:1,c:2}, {r:1,c:9},{r:1,c:10},
+  // head top (r2)
+  {r:2,c:1},{r:2,c:2},{r:2,c:3},{r:2,c:4},{r:2,c:5},{r:2,c:6},{r:2,c:7},{r:2,c:8},{r:2,c:9},{r:2,c:10},
+  // (r3)
+  {r:3,c:1},{r:3,c:2},{r:3,c:3},{r:3,c:4},{r:3,c:5},{r:3,c:6},{r:3,c:7},{r:3,c:8},{r:3,c:9},{r:3,c:10},
+  // face sides only (r4-r7) — face area is blank for character-specific face
+  {r:4,c:1},{r:4,c:10},
+  {r:5,c:1},{r:5,c:10},
+  {r:6,c:1},{r:6,c:10},
+  {r:7,c:1},{r:7,c:10},
+  // body (r8)
+  {r:8,c:1},{r:8,c:2},{r:8,c:3},{r:8,c:4},{r:8,c:5},{r:8,c:6},{r:8,c:7},{r:8,c:8},{r:8,c:9},{r:8,c:10},
+  // body (r9)
+  {r:9,c:1},{r:9,c:2},{r:9,c:3},{r:9,c:4},{r:9,c:5},{r:9,c:6},{r:9,c:7},{r:9,c:8},{r:9,c:9},{r:9,c:10},
+  // feet (r10) — 2 legs with gap in middle and outer gaps
+  {r:10,c:1},{r:10,c:2}, {r:10,c:4},{r:10,c:5},{r:10,c:6},{r:10,c:7}, {r:10,c:9},{r:10,c:10},
+];
+
+/*
+  BODY_INFILL — the face area pixels (filled with body color by default)
+  These positions might be overridden by FACES[id] to become eye/mouth
+*/
+const FACE_CELLS = [];
+for (let r = 4; r <= 7; r++) {
+  for (let c = 2; c <= 9; c++) {
+    FACE_CELLS.push({r, c});
+  }
+}
+
+/*
+  FACES — per-character face override
+  Each character defines which face cells are EYES (white) or MOUTH (white).
+  Everything else in the face area gets body color automatically.
+*/
+const FACES = {
+  // NEO — มั่นใจ: ^^ tilted eyes + smile line
+  neo: {
+    eye:   [{r:4,c:3},{r:5,c:2},{r:5,c:3}, {r:4,c:8},{r:5,c:8},{r:5,c:9}],
+    mouth: [{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7}],
+  },
+
+  // ATLAS — นิ่ง: dots + straight line
+  atlas: {
+    eye:   [{r:5,c:3}, {r:5,c:8}],
+    mouth: [{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7}],
+  },
+
+  // NOVA — อยากรู้: ตากลมโต 2×2 + small O mouth
+  nova: {
+    eye:   [{r:4,c:2},{r:4,c:3},{r:5,c:2},{r:5,c:3},
+            {r:4,c:8},{r:4,c:9},{r:5,c:8},{r:5,c:9}],
+    mouth: [{r:6,c:5},{r:6,c:6},{r:7,c:5},{r:7,c:6}],
+  },
+
+  // LUNA — อ่อนหวาน: normal eyes + curved smile
+  luna: {
+    eye:   [{r:4,c:3},{r:5,c:3}, {r:4,c:8},{r:5,c:8}],
+    mouth: [{r:6,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7},{r:6,c:8}],
+  },
+
+  // PIXEL — สดใส: หรี่ตา + wide smile
+  pixel: {
+    eye:   [{r:4,c:2},{r:4,c:3}, {r:4,c:8},{r:4,c:9}],
+    mouth: [{r:6,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7},{r:6,c:8}],
+  },
+
+  // SAGE — ใจดี: ตาพริ้ม (vertical line) + small smile
+  sage: {
+    eye:   [{r:4,c:3},{r:5,c:3}, {r:4,c:8},{r:5,c:8}],
+    mouth: [{r:7,c:5},{r:7,c:6}],
+  },
+
+  // REX — ดุ: angled eyes + jagged teeth
+  rex: {
+    eye:   [{r:4,c:2},{r:5,c:3}, {r:5,c:8},{r:4,c:9}],
+    mouth: [{r:7,c:3},{r:6,c:4},{r:7,c:5},{r:6,c:6},{r:7,c:7},{r:6,c:8}],
+  },
+
+  // BYTE — ซีเรียส: square eyes + pixel-dotted mouth
+  byte: {
+    eye:   [{r:4,c:2},{r:4,c:3},{r:5,c:2},{r:5,c:3},
+            {r:4,c:8},{r:4,c:9},{r:5,c:8},{r:5,c:9}],
+    mouth: [{r:7,c:3},{r:7,c:5},{r:7,c:7}],
+  },
+
+  // QUILL — ขี้เล่น: wink (one eye open, one line) + smirk
+  quill: {
+    eye:   [{r:4,c:3},{r:5,c:3},      // left eye open
+            {r:5,c:7},{r:5,c:8},{r:5,c:9}],  // right eye wink line
+    mouth: [{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:7}],  // smirk up
+  },
+};
+
+/* ============================================
+   BUILD A PIXEL BOT
+   ============================================ */
+function buildBot(id, color) {
+  const bot = document.createElement('div');
+  bot.className = 'bot';
+  bot.style.color = color;
+
+  /* helper: create a pixel cell */
+  const addCell = (r, c, extraClass) => {
+    const cell = document.createElement('div');
+    cell.className = 'p' + (extraClass ? ' ' + extraClass : '');
+    cell.style.gridRow = r;
+    cell.style.gridColumn = c;
+    bot.appendChild(cell);
+  };
+
+  /* 1. body pixels */
+  BODY.forEach(px => addCell(px.r, px.c));
+
+  /* 2. face area: fill all face cells with body color, then override eye/mouth */
+  const face = FACES[id] || FACES.neo;
+  const eyeSet = new Set(face.eye.map(p => `${p.r},${p.c}`));
+  const mouthSet = new Set(face.mouth.map(p => `${p.r},${p.c}`));
+
+  FACE_CELLS.forEach(({r, c}) => {
+    const key = `${r},${c}`;
+    if (eyeSet.has(key))        addCell(r, c, 'eye');
+    else if (mouthSet.has(key)) addCell(r, c, 'mouth');
+    else                        addCell(r, c);  /* body fill */
+  });
+
+  return bot;
+}
+
+/* ============================================
+   RENDER CARDS
+   ============================================ */
+const grid = document.getElementById('grid');
+CHARS.forEach(ch => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.id = ch.id;
+
+  const stage = document.createElement('div');
+  stage.className = 'stage';
+  stage.appendChild(buildBot(ch.id, ch.color));
+
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.textContent = ch.name;
+
+  const role = document.createElement('div');
+  role.className = 'role';
+  role.textContent = ch.role;
+
+  card.appendChild(stage);
+  card.appendChild(name);
+  card.appendChild(role);
+  grid.appendChild(card);
+
+  /* click → jump */
+  card.addEventListener('click', () => {
+    card.classList.remove('jumping');
+    void card.offsetWidth;  /* reflow to restart animation */
+    card.classList.add('jumping');
+    setTimeout(() => card.classList.remove('jumping'), 700);
+  });
+});
+
+/* ============================================
+   RENDER PLAYGROUND (walkers)
+   ============================================ */
+const playground = document.getElementById('playground');
+CHARS.forEach(ch => {
+  const walker = document.createElement('div');
+  walker.className = 'walker';
+  walker.appendChild(buildBot(ch.id, ch.color));
+  playground.appendChild(walker);
+});
+</script>
+
+</body>
+</html>

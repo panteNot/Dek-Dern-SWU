@@ -1,0 +1,3633 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>NEO LABS — Office</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   NEO LABS — Office Web App (v3)
+   - 2 views: OFFICE (draggable bots in rooms) + DATA (stats)
+   - Full streaming chat, agent/model picker, workload bars
+   ============================================================ */
+:root {
+  --bg-0: #07070d;
+  --bg-1: #0d0d17;
+  --bg-2: #141421;
+  --bg-3: #1c1c2e;
+  --line: rgba(255,255,255,0.07);
+  --line-2: rgba(255,255,255,0.12);
+  --fg: #e8e8f0;
+  --muted: #7b7b8c;
+  --dim: #4a4a5a;
+
+  --neo:   #ff6b35;
+  --atlas: #14b8a6;
+  --nova:  #a855f7;
+  --luna:  #ec4899;
+  --pixel: #22c55e;
+  --sage:  #eab308;
+  --rex:   #ef4444;
+  --byte:  #3b82f6;
+  --quill: #e5e5e5;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+
+body {
+  background:
+    radial-gradient(ellipse at top left, rgba(255,107,53,0.06), transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(168,85,247,0.08), transparent 50%),
+    var(--bg-0);
+  color: var(--fg);
+  font-family: 'Prompt', system-ui, sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+.topbar {
+  height: 56px;
+  background: linear-gradient(180deg, rgba(28,28,46,0.9), rgba(20,20,33,0.9));
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.logo {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: 3px;
+  background: linear-gradient(90deg, var(--neo), var(--luna), var(--nova));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.logo::before { content: '◆ '; color: var(--neo); -webkit-text-fill-color: var(--neo); }
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-left: 20px;
+}
+
+.tab {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  padding: 7px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab:hover { color: var(--fg); border-color: var(--line-2); }
+
+.tab.active {
+  background: linear-gradient(135deg, var(--neo), #ff8855);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px -4px var(--neo);
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.02);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.status-chip .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--pixel);
+  box-shadow: 0 0 8px var(--pixel);
+  animation: pulse 2s infinite;
+}
+
+.status-chip.offline .dot { background: var(--rex); box-shadow: 0 0 8px var(--rex); }
+
+.topbar .spacer { flex: 1; }
+
+.topbar .clock {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 2px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.main-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.view {
+  flex: 1;
+  overflow: hidden;
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.view.active { display: flex; }
+
+/* ============================================================
+   OFFICE VIEW — 3x3 rooms with draggable bots
+   ============================================================ */
+.office-floor {
+  flex: 1;
+  position: relative;
+  margin: 16px 20px;
+  background:
+    linear-gradient(135deg, rgba(20,20,33,0.6), rgba(10,10,20,0.6)),
+    repeating-linear-gradient(0deg, transparent 0 39px, rgba(255,255,255,0.02) 39px 40px),
+    repeating-linear-gradient(90deg, transparent 0 39px, rgba(255,255,255,0.02) 39px 40px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.office-floor::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(0,0,0,0.3) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* rooms arranged in 3x3 grid absolute */
+.rooms {
+  position: absolute;
+  inset: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 10px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.room {
+  position: relative;
+  border: 1.5px dashed rgba(255,255,255,0.08);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2));
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10px;
+  transition: all 0.2s;
+}
+
+.room.highlight {
+  border-color: currentColor;
+  border-style: solid;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), currentColor);
+  background-blend-mode: overlay;
+  box-shadow: 0 0 0 1px currentColor inset, 0 0 20px -4px currentColor;
+}
+
+.room-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: currentColor;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+.room-name::before { content: '⌂ '; opacity: 0.5; }
+
+/* bots layer above rooms */
+.bots-layer {
+  position: absolute;
+  inset: 16px;
+  z-index: 10;
+}
+
+.bot-wrapper {
+  position: absolute;
+  cursor: grab;
+  transition: transform 0.15s;
+  user-select: none;
+  --flip: 1;
+}
+
+.bot-wrapper.dragging {
+  cursor: grabbing;
+  z-index: 100;
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));
+}
+
+.bot-wrapper.dragging .bot-pixel { animation: none; }
+
+.bot-wrapper.active-bot .bot-pixel {
+  filter: drop-shadow(0 0 16px currentColor);
+}
+
+.bot-wrapper:hover { z-index: 50; }
+
+.bot-pixel {
+  display: grid;
+  grid-template-columns: repeat(10, 5px);
+  grid-template-rows: repeat(10, 5px);
+  gap: 0;
+  filter: drop-shadow(0 0 8px currentColor);
+  animation: bob 2.4s ease-in-out infinite;
+  transform: scaleX(var(--flip));
+}
+
+.bot-wrapper.walking .bot-pixel {
+  animation: walkBob 0.4s ease-in-out infinite;
+}
+
+.bot-pixel .p { width: 5px; height: 5px; background: currentColor; }
+.bot-pixel .eye { background: #fff; animation: blink 5s infinite; }
+.bot-pixel .mouth { background: #fff; }
+
+.bot-tag {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: currentColor;
+  letter-spacing: 1.5px;
+  white-space: nowrap;
+  text-shadow: 0 0 6px rgba(0,0,0,0.8);
+  pointer-events: none;
+}
+
+.bot-pip {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pixel);
+  box-shadow: 0 0 6px var(--pixel);
+  border: 1.5px solid var(--bg-0);
+}
+
+.bot-wrapper[data-status="busy"] .bot-pip {
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  animation: pulse 1s infinite;
+}
+
+.bot-wrapper[data-status="thinking"] .bot-pip {
+  background: #3b82f6;
+  animation: pulse 1s infinite;
+}
+
+/* speech bubble */
+.bubble {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.9);
+  border: 1px solid currentColor;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--fg);
+  white-space: nowrap;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  opacity: 0;
+  animation: bubblePop 4s ease-out forwards;
+  z-index: 200;
+}
+
+@keyframes bubblePop {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.85); }
+  10%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  90%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+}
+
+@keyframes bob {
+  0%, 100% { transform: scaleX(var(--flip)) translateY(0); }
+  50%      { transform: scaleX(var(--flip)) translateY(-3px); }
+}
+
+@keyframes walkBob {
+  0%, 100% { transform: scaleX(var(--flip)) translateY(0) rotate(0); }
+  25%      { transform: scaleX(var(--flip)) translateY(-2px) rotate(-2deg); }
+  75%      { transform: scaleX(var(--flip)) translateY(-2px) rotate(2deg); }
+}
+
+@keyframes blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  94%, 97%      { transform: scaleY(0.1); }
+}
+
+/* ============================================================
+   DATA VIEW
+   ============================================================ */
+.data-grid {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  min-height: 0;
+}
+
+.data-grid::-webkit-scrollbar { width: 6px; }
+.data-grid::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+
+.data-card {
+  background: linear-gradient(160deg, rgba(28,28,46,0.6), rgba(14,14,23,0.6));
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.data-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-2);
+}
+
+.data-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 16px; right: 16px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 0 0 2px 2px;
+  opacity: 0.5;
+}
+
+.data-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.data-mini-bot {
+  width: 50px; height: 50px;
+  display: grid;
+  grid-template-columns: repeat(10, 4px);
+  grid-template-rows: repeat(10, 4px);
+  filter: drop-shadow(0 0 8px currentColor);
+  flex-shrink: 0;
+}
+
+.data-mini-bot .p { width: 4px; height: 4px; background: currentColor; }
+.data-mini-bot .eye { background: #fff; }
+.data-mini-bot .mouth { background: #fff; }
+
+.data-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  color: currentColor;
+}
+
+.data-role {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.data-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.stat {
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.stat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: currentColor;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.data-workload {
+  margin-bottom: 12px;
+}
+
+.data-workload-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.data-workload-label .val { color: currentColor; font-weight: 700; }
+
+.data-workload-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.data-workload-fill {
+  height: 100%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  transition: width 0.4s ease;
+}
+
+.data-last {
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  line-height: 1.5;
+  max-height: 52px;
+  overflow: hidden;
+}
+
+.data-last .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--dim);
+  margin-bottom: 3px;
+}
+
+.data-card .pick-btn {
+  position: absolute;
+  top: 12px; right: 12px;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--muted);
+  padding: 4px 9px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.15s;
+}
+
+.data-card .pick-btn:hover {
+  color: currentColor;
+  border-color: currentColor;
+}
+
+.data-tools {
+  padding: 10px 20px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.data-total {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+
+.reset-btn {
+  background: transparent;
+  border: 1px solid var(--line-2);
+  color: var(--muted);
+  padding: 6px 12px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.15s;
+}
+
+.reset-btn:hover {
+  color: var(--rex);
+  border-color: var(--rex);
+}
+
+/* ============================================================
+   CHAT DOCK
+   ============================================================ */
+.chat-dock {
+  border-top: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(14,14,23,0.6), rgba(7,7,13,0.9));
+  padding: 12px 20px;
+  flex-shrink: 0;
+}
+
+.dock-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+.control-select {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  color: var(--fg);
+  padding: 6px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  padding-right: 24px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%237b7b8c' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  transition: border-color 0.15s;
+}
+
+.control-select:focus { border-color: var(--neo); }
+
+.dock-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.dock-input {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  resize: none;
+  min-height: 44px;
+  max-height: 140px;
+  transition: border-color 0.15s;
+}
+
+.dock-input:focus { border-color: var(--neo); }
+.dock-input::placeholder { color: var(--dim); }
+
+.dock-send {
+  background: linear-gradient(135deg, var(--neo), #ff8855);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0 20px;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+  box-shadow: 0 4px 12px -4px var(--neo);
+}
+
+.dock-send:hover { transform: translateY(-1px); }
+.dock-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ============================================================
+   SIDEBAR — Activity Feed
+   ============================================================ */
+.sidebar {
+  background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--muted);
+}
+
+.clear-btn {
+  background: none;
+  border: 1px solid var(--line-2);
+  color: var(--muted);
+  padding: 4px 8px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.15s;
+}
+
+.clear-btn:hover { color: var(--fg); border-color: var(--fg); }
+
+.feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.feed::-webkit-scrollbar { width: 5px; }
+.feed::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+
+.feed-empty {
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--dim);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 1px;
+}
+
+.feed-item {
+  padding: 10px 16px 10px 18px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-left: 3px solid transparent;
+  animation: slideIn 0.3s ease-out;
+}
+
+.feed-item.user {
+  border-left-color: var(--muted);
+  background: rgba(255,255,255,0.02);
+}
+
+.feed-item .who {
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  margin-right: 6px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.feed-item .msg {
+  color: var(--fg);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.feed-item.user .msg { color: var(--muted); }
+
+.feed-item .time {
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--dim);
+  margin-top: 3px;
+  letter-spacing: 1px;
+}
+
+.feed-item .cursor {
+  display: inline-block;
+  width: 6px;
+  height: 12px;
+  background: currentColor;
+  vertical-align: middle;
+  animation: blink-cursor 0.8s infinite;
+  margin-left: 2px;
+}
+
+/* ---- Thinking state (presence indicator) ---- */
+.feed-item.thinking {
+  background: linear-gradient(90deg, rgba(255,255,255,0.015), transparent 80%);
+}
+.feed-item.thinking .msg {
+  color: var(--muted);
+  font-style: italic;
+}
+.feed-item .dots {
+  display: inline-flex; gap: 3px; margin-left: 4px; vertical-align: middle;
+}
+.feed-item .dots span {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: currentColor;
+  animation: dot-bounce 1.2s infinite ease-in-out;
+}
+.feed-item .dots span:nth-child(2) { animation-delay: 0.15s; }
+.feed-item .dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ---- Robot presence glow (active agent) ---- */
+.bot-wrapper[data-presence="active"] {
+  animation: presence-bob 1.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 16px currentColor) saturate(1.25);
+}
+@keyframes presence-bob {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-6px) scale(1.03); }
+}
+
+@keyframes blink-cursor {
+  50% { opacity: 0; }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================================
+   TERMINAL VIEW
+   ============================================================ */
+.terminal-flowchart {
+  padding: 18px 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.flow-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s;
+  opacity: 0.4;
+}
+
+.flow-step.active { opacity: 1; }
+.flow-step.complete { opacity: 0.8; }
+
+.flow-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg-2);
+  border: 2px solid var(--line-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  transition: all 0.3s;
+}
+
+.flow-step.active .flow-dot {
+  background: linear-gradient(135deg, var(--neo), #ff8855);
+  border-color: var(--neo);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(255,107,53,0.2), 0 0 16px var(--neo);
+  animation: pulse 1.2s infinite;
+}
+
+.flow-step.complete .flow-dot {
+  background: var(--pixel);
+  border-color: var(--pixel);
+  color: #000;
+}
+
+.flow-step.complete .flow-dot::before {
+  content: '✓';
+}
+
+.flow-step.complete .flow-dot .num { display: none; }
+
+.flow-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+
+.flow-step.active .flow-label { color: var(--neo); }
+.flow-step.complete .flow-label { color: var(--pixel); }
+
+.flow-line {
+  flex: 1;
+  max-width: 60px;
+  height: 2px;
+  background: var(--line-2);
+  margin-bottom: 20px;
+}
+
+.terminal-body {
+  flex: 1;
+  background: #05050a;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 16px 20px;
+  overflow-y: auto;
+  line-height: 1.7;
+  margin: 0 20px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+
+.terminal-body::-webkit-scrollbar { width: 6px; }
+.terminal-body::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+
+.term-line {
+  padding: 2px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  animation: termIn 0.2s ease-out;
+}
+
+.term-line .ts {
+  color: var(--dim);
+  margin-right: 8px;
+}
+
+.term-line .tag {
+  font-weight: 700;
+  margin-right: 8px;
+}
+
+.term-sys   { color: var(--neo); }
+.term-info  { color: #60a5fa; }
+.term-ok    { color: var(--pixel); }
+.term-warn  { color: var(--sage); }
+.term-err   { color: var(--rex); }
+.term-dim   { color: var(--dim); }
+.term-stream { color: var(--fg); }
+
+@keyframes termIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================================
+   HISTORY VIEW
+   ============================================================ */
+.history-toolbar {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.history-stats {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+
+.history-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.history-list::-webkit-scrollbar { width: 6px; }
+.history-list::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 3px; }
+
+.hist-empty {
+  padding: 60px 20px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--dim);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 1px;
+}
+
+.hist-item {
+  background: linear-gradient(160deg, rgba(28,28,46,0.5), rgba(14,14,23,0.5));
+  border: 1px solid var(--line);
+  border-left: 3px solid currentColor;
+  border-radius: 10px;
+  padding: 12px 14px;
+  transition: all 0.2s;
+}
+
+.hist-item:hover {
+  border-color: var(--line-2);
+  transform: translateX(2px);
+}
+
+.hist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+.hist-head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hist-agent {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: currentColor;
+}
+
+.hist-model {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  padding: 2px 6px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+}
+
+.hist-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--dim);
+}
+
+.hist-prompt {
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.hist-response {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  max-height: 56px;
+  overflow: hidden;
+  position: relative;
+  transition: max-height 0.3s;
+}
+
+.hist-response.expanded { max-height: none; }
+
+.hist-response:not(.expanded)::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 24px;
+  background: linear-gradient(180deg, transparent, rgba(14,14,23,0.95));
+}
+
+.hist-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.hist-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line-2);
+  color: var(--muted);
+  padding: 4px 10px;
+  font-size: 9px;
+  letter-spacing: 1px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.15s;
+}
+
+.hist-btn:hover {
+  color: currentColor;
+  border-color: currentColor;
+}
+
+.hist-btn.retry:hover { color: var(--neo); border-color: var(--neo); }
+.hist-btn.del:hover { color: var(--rex); border-color: var(--rex); }
+
+/* ============================================================
+   FILES VIEW
+   ============================================================ */
+.files-toolbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px; background: var(--bg-2);
+  border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px;
+  gap: 12px;
+}
+.files-path {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+}
+.files-path-label { color: var(--muted); letter-spacing: 2px; font-weight: 600; }
+#filesPath { color: var(--neo); font-weight: 700; }
+.files-actions { display: flex; gap: 6px; }
+.files-layout {
+  display: grid; grid-template-columns: 280px 1fr; gap: 10px;
+  flex: 1; min-height: 0;
+}
+.files-tree, .files-preview {
+  background: var(--bg-1); border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px; overflow: auto;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+}
+.files-tree { max-height: 100%; }
+.files-empty, .files-preview-empty {
+  color: var(--muted); text-align: center; padding: 30px 10px; font-size: 11px;
+}
+.file-node {
+  padding: 5px 8px; border-radius: 6px; cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  color: var(--fg); transition: background 0.1s;
+  user-select: none;
+}
+.file-node:hover { background: var(--bg-3); }
+.file-node.selected { background: rgba(255,107,53,0.15); color: var(--neo); }
+.file-node .icon { width: 14px; text-align: center; font-size: 11px; }
+.file-node .size { margin-left: auto; color: var(--dim); font-size: 10px; }
+.file-node.folder { color: var(--atlas); font-weight: 600; }
+.file-node .children { padding-left: 16px; }
+.files-preview-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 8px;
+  color: var(--muted); font-size: 11px; letter-spacing: 1px;
+}
+.files-preview-content {
+  white-space: pre-wrap; word-break: break-word;
+  color: var(--fg); line-height: 1.5;
+  font-size: 12px;
+}
+.files-preview img { max-width: 100%; border-radius: 6px; }
+
+/* ============================================================
+   EDITOR VIEW
+   ============================================================ */
+.editor-toolbar {
+  display: flex; gap: 8px; align-items: center;
+  padding: 10px 14px; background: var(--bg-2);
+  border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px;
+}
+.editor-filename {
+  flex: 1; background: var(--bg-1); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  outline: none;
+}
+.editor-filename:focus { border-color: var(--neo); }
+.editor-layout {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  flex: 1; min-height: 0;
+}
+.editor-host {
+  background: #1e1e2e; border: 1px solid var(--line); border-radius: 10px;
+  overflow: hidden; min-height: 400px;
+}
+.editor-output {
+  display: flex; flex-direction: column;
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: 10px;
+  overflow: hidden;
+}
+.editor-output-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; border-bottom: 1px solid var(--line);
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--muted); letter-spacing: 2px; font-weight: 600;
+  background: var(--bg-2);
+}
+.editor-iframe {
+  flex: 1; width: 100%; border: 0; background: #0d0d17;
+}
+
+/* ============================================================
+   CANVAS VIEW
+   ============================================================ */
+.canvas-toolbar {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  padding: 10px 14px; background: var(--bg-2);
+  border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px;
+}
+.canvas-tool {
+  background: transparent; border: 1px solid var(--line); color: var(--muted);
+  padding: 6px 10px; border-radius: 6px; cursor: pointer;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px;
+  transition: all 0.15s;
+}
+.canvas-tool:hover { color: var(--fg); border-color: var(--line-2); }
+.canvas-tool.active { color: var(--neo); border-color: var(--neo); background: rgba(255,107,53,0.1); }
+.canvas-color {
+  width: 36px; height: 32px; border: 1px solid var(--line);
+  border-radius: 6px; background: transparent; cursor: pointer; padding: 2px;
+}
+.canvas-size { width: 80px; }
+.canvas-size-label {
+  color: var(--muted); font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; min-width: 20px;
+}
+.canvas-host {
+  flex: 1; background: #fafafa; border: 1px solid var(--line);
+  border-radius: 10px; overflow: hidden; position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+#fabricCanvas { display: block; }
+
+/* ============================================================
+   3D VIEWER VIEW
+   ============================================================ */
+.viewer3d-toolbar {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px 14px; background: var(--bg-2);
+  border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px;
+}
+.viewer3d-prompt {
+  flex: 1; background: var(--bg-1); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 12px; font-family: 'Prompt', sans-serif; font-size: 13px;
+  resize: none; outline: none;
+}
+.viewer3d-prompt:focus { border-color: var(--neo); }
+.viewer3d-actions { display: flex; flex-direction: column; gap: 6px; }
+.viewer3d-layout {
+  flex: 1; display: grid; grid-template-rows: 1fr; gap: 10px; min-height: 0;
+}
+.viewer3d-layout.with-code { grid-template-rows: 1fr 200px; }
+.viewer3d-stage {
+  background: #000; border: 1px solid var(--line); border-radius: 10px;
+  overflow: hidden;
+}
+.viewer3d-iframe {
+  width: 100%; height: 100%; border: 0; display: block;
+}
+.viewer3d-code {
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px;
+}
+#viewer3dCodeArea {
+  width: 100%; height: 100%; background: transparent; border: 0;
+  color: var(--fg); font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  resize: none; outline: none;
+}
+
+/* ============================================================
+   AGENT DASHBOARD EXPANSION (halo states + drawer)
+   ============================================================ */
+.bot-halo.idle     { box-shadow: 0 0 0 2px rgba(123,123,140,0.3); }
+.bot-halo.thinking { box-shadow: 0 0 20px currentColor, 0 0 0 2px currentColor; animation: haloThink 1s ease-in-out infinite; }
+.bot-halo.streaming{ box-shadow: 0 0 30px currentColor, 0 0 0 3px currentColor; animation: haloStream 0.5s linear infinite; }
+.bot-halo.done     { box-shadow: 0 0 10px currentColor; }
+
+@keyframes haloThink {
+  0%,100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+@keyframes haloStream {
+  0%,100% { filter: brightness(1); }
+  50% { filter: brightness(1.6); }
+}
+
+.agent-drawer {
+  position: fixed; top: 56px; right: -380px; width: 360px; height: calc(100vh - 56px);
+  background: var(--bg-2); border-left: 1px solid var(--line-2);
+  z-index: 200; transition: right 0.3s; overflow-y: auto;
+  padding: 18px;
+}
+.agent-drawer.open { right: 0; }
+.agent-drawer-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line);
+}
+.agent-drawer-title {
+  font-family: 'JetBrains Mono', monospace; font-size: 16px;
+  font-weight: 700; letter-spacing: 2px;
+}
+.agent-drawer-close {
+  background: transparent; border: 1px solid var(--line); color: var(--muted);
+  width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
+}
+.agent-drawer-stat {
+  display: flex; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--line);
+  font-size: 12px; color: var(--muted);
+}
+.agent-drawer-stat b { color: var(--fg); font-family: 'JetBrains Mono', monospace; }
+.agent-drawer-task {
+  padding: 10px; background: var(--bg-1); border-radius: 8px; margin-top: 12px;
+  font-size: 12px; color: var(--fg);
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .data-grid { grid-template-columns: 1fr; }
+  .terminal-flowchart { flex-wrap: wrap; gap: 2px; }
+  .flow-line { max-width: 20px; }
+  .files-layout { grid-template-columns: 1fr; }
+  .editor-layout { grid-template-columns: 1fr; }
+  .agent-drawer { width: 100%; right: -100%; }
+  .agent-drawer.open { right: 0; }
+}
+
+/* ============================================================
+   CONVERSATIONS PANEL — slide-in from left
+   ============================================================ */
+.conv-btn {
+  background: transparent; border: 1px solid var(--line-strong, rgba(255,255,255,.14));
+  color: var(--fg, #e6e6ee); padding: 6px 12px; border-radius: 6px;
+  font: 11px/1 'JetBrains Mono', monospace; letter-spacing: .08em;
+  cursor: pointer; transition: background .15s;
+}
+.conv-btn:hover { background: rgba(255,255,255,.06); }
+
+.conv-panel {
+  position: fixed; top: 0; left: 0; bottom: 0; width: 320px;
+  background: var(--bg-1, #0d0d12); border-right: 1px solid var(--line-strong, rgba(255,255,255,.14));
+  transform: translateX(-105%); transition: transform .22s ease;
+  z-index: 1400; display: flex; flex-direction: column;
+  box-shadow: 4px 0 24px rgba(0,0,0,.4);
+}
+.conv-panel.open { transform: translateX(0); }
+.conv-panel-head {
+  padding: 14px 16px; border-bottom: 1px solid var(--line-strong, rgba(255,255,255,.1));
+  display: flex; align-items: center; gap: 10px;
+}
+.conv-panel-title {
+  font: 11px/1 'JetBrains Mono', monospace; letter-spacing: .12em;
+  color: var(--fg, #e6e6ee); font-weight: 700; flex: 1;
+}
+.conv-panel-close {
+  background: transparent; border: none; color: var(--muted, #8a8a94);
+  cursor: pointer; font-size: 18px; padding: 0 4px;
+}
+.conv-panel-close:hover { color: var(--fg, #fff); }
+.conv-new-btn {
+  margin: 10px 12px; padding: 10px 12px; border-radius: 6px;
+  background: var(--neo, #ff6b35); color: #000; border: none;
+  font: 12px/1 'JetBrains Mono', monospace; font-weight: 700;
+  letter-spacing: .06em; cursor: pointer;
+}
+.conv-new-btn:hover { filter: brightness(1.1); }
+.conv-list { flex: 1; overflow-y: auto; padding: 4px 8px 16px; }
+.conv-empty {
+  padding: 24px 16px; text-align: center; color: var(--muted, #7b7b85);
+  font: 11px/1.5 'JetBrains Mono', monospace;
+}
+.conv-row {
+  padding: 10px 12px; border-radius: 6px; cursor: pointer;
+  display: flex; gap: 8px; align-items: flex-start;
+  transition: background .1s;
+}
+.conv-row:hover { background: rgba(255,255,255,.05); }
+.conv-row.active { background: rgba(255,107,53,.12); border: 1px solid rgba(255,107,53,.3); }
+.conv-row-body { flex: 1; min-width: 0; }
+.conv-row-title {
+  font: 12px/1.3 system-ui, sans-serif; color: var(--fg, #e6e6ee);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 3px;
+}
+.conv-row-meta {
+  font: 10px/1 'JetBrains Mono', monospace;
+  color: var(--muted, #8a8a94); letter-spacing: .04em;
+}
+.conv-row-agent { color: var(--agent-hex, var(--neo, #ff6b35)); font-weight: 700; }
+.conv-row-del {
+  background: transparent; border: none; color: var(--muted, #6b6b75);
+  cursor: pointer; padding: 2px 4px; font-size: 14px; line-height: 1;
+  opacity: 0; transition: opacity .1s;
+}
+.conv-row:hover .conv-row-del { opacity: 1; }
+.conv-row-del:hover { color: #ef4444; }
+.conv-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  opacity: 0; pointer-events: none; transition: opacity .22s;
+  z-index: 1399;
+}
+.conv-backdrop.open { opacity: 1; pointer-events: auto; }
+
+/* Orchestrate toggle */
+.orch-btn {
+  background: transparent; border: 1px solid var(--line-strong, rgba(255,255,255,.14));
+  color: var(--fg, #e6e6ee); padding: 6px 12px; border-radius: 6px;
+  font: 11px/1 'JetBrains Mono', monospace; letter-spacing: .08em;
+  cursor: pointer; transition: background .15s, border-color .15s;
+}
+.orch-btn:hover { background: rgba(255,255,255,.06); }
+.orch-btn.on {
+  background: linear-gradient(135deg, rgba(255,107,53,.2), rgba(168,85,247,.2));
+  border-color: var(--neo, #ff6b35);
+  color: var(--neo, #ff6b35); font-weight: 700;
+}
+
+/* Handoff arrow in feed */
+.feed-handoff {
+  padding: 6px 14px; margin: 4px 0;
+  font: 10px/1.3 'JetBrains Mono', monospace;
+  color: var(--muted, #8a8a94); letter-spacing: .06em;
+  border-left: 2px dashed rgba(255,255,255,.15);
+  background: rgba(255,255,255,.02);
+}
+.feed-handoff .arrow { color: var(--neo, #ff6b35); font-weight: 700; }
+.feed-handoff .from, .feed-handoff .to { font-weight: 700; }
+.feed-handoff .task { display: block; margin-top: 3px; color: var(--dim, #7b7b85); font-size: 10px; }
+
+/* Tool call cards (Level 3) */
+.feed-tool {
+  padding: 8px 12px; margin: 4px 0; border-radius: 6px;
+  font: 11px/1.4 'JetBrains Mono', monospace;
+  background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.25);
+  border-left: 3px solid #3b82f6;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.feed-tool.error { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.3); border-left-color: #ef4444; }
+.feed-tool-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.feed-tool-icon { font-size: 14px; }
+.feed-tool-name { color: #3b82f6; font-weight: 700; letter-spacing: .04em; }
+.feed-tool.error .feed-tool-name { color: #ef4444; }
+.feed-tool-agent { color: var(--muted, #8a8a94); font-size: 9px; letter-spacing: .06em; }
+.feed-tool-path {
+  color: var(--fg, #e6e6ee); padding: 2px 6px; border-radius: 3px;
+  background: rgba(255,255,255,.04); font-size: 10px;
+}
+.feed-tool-status { margin-left: auto; font-size: 10px; color: #22c55e; }
+.feed-tool.error .feed-tool-status { color: #ef4444; }
+.feed-tool-actions { display: flex; gap: 6px; margin-top: 2px; }
+.feed-tool-btn {
+  padding: 3px 10px; border-radius: 4px; border: 1px solid var(--line-strong, rgba(255,255,255,.14));
+  background: transparent; color: var(--fg, #e6e6ee); cursor: pointer;
+  font: 10px/1 'JetBrains Mono', monospace; letter-spacing: .04em;
+}
+.feed-tool-btn:hover { background: rgba(255,255,255,.08); border-color: #3b82f6; }
+</style>
+<script src="neo-auth.js?v=2"></script>
+<script src="neo-theme.js?v=1"></script>
+<script src="neo-cmdk.js?v=5" defer></script>
+</head>
+<body>
+
+<!-- ========== TOP BAR ========== -->
+<!-- Conversations slide-in panel -->
+<div class="conv-backdrop" id="convBackdrop"></div>
+<aside class="conv-panel" id="convPanel" aria-label="Conversations">
+  <div class="conv-panel-head">
+    <div class="conv-panel-title">💬 CONVERSATIONS</div>
+    <button class="conv-panel-close" id="convClose" aria-label="Close">×</button>
+  </div>
+  <button class="conv-new-btn" id="convNewBtn">+ NEW CONVERSATION</button>
+  <div class="conv-list" id="convList">
+    <div class="conv-empty">ยังไม่มีประวัติ — เริ่มคุยเพื่อสร้าง conversation แรก</div>
+  </div>
+</aside>
+
+<div class="topbar">
+  <button class="conv-btn" id="convOpenBtn" title="Conversations (Ctrl/⌘+H)">💬</button>
+  <button class="orch-btn" id="orchToggle" title="Multi-agent mode — NEO delegates to specialists">🎭 TEAM</button>
+  <div class="logo">NEO LABS</div>
+  <div class="tabs">
+    <button class="tab active" data-view="office">🏢 OFFICE</button>
+    <button class="tab" data-view="terminal">💻 TERMINAL</button>
+    <button class="tab" data-view="history">📜 HISTORY</button>
+    <button class="tab" data-view="data">📊 DATA</button>
+    <button class="tab" data-view="files">📁 FILES</button>
+    <button class="tab" data-view="editor">⌨ EDITOR</button>
+    <button class="tab" data-view="canvas">🎨 CANVAS</button>
+    <button class="tab" data-view="viewer3d">🌐 3D</button>
+  </div>
+  <div class="status-chip" id="statusChip"><span class="dot"></span><span id="statusText">API CONNECTED</span></div>
+  <div class="spacer"></div>
+  <div class="clock" id="clock">--:--:--</div>
+</div>
+
+<!-- ========== LAYOUT ========== -->
+<div class="layout">
+
+  <!-- MAIN PANEL -->
+  <div class="main-panel">
+
+    <!-- OFFICE VIEW -->
+    <div class="view active" id="viewOffice">
+      <div class="office-floor" id="floor">
+        <div class="rooms" id="rooms"></div>
+        <div class="bots-layer" id="botsLayer"></div>
+      </div>
+    </div>
+
+    <!-- TERMINAL VIEW -->
+    <div class="view" id="viewTerminal">
+      <div class="terminal-flowchart" id="flowchart">
+        <div class="flow-step" data-step="idle"><div class="flow-dot">1</div><div class="flow-label">QUEUE</div></div>
+        <div class="flow-line"></div>
+        <div class="flow-step" data-step="thinking"><div class="flow-dot">2</div><div class="flow-label">THINKING</div></div>
+        <div class="flow-line"></div>
+        <div class="flow-step" data-step="streaming"><div class="flow-dot">3</div><div class="flow-label">STREAMING</div></div>
+        <div class="flow-line"></div>
+        <div class="flow-step" data-step="done"><div class="flow-dot">4</div><div class="flow-label">DONE</div></div>
+      </div>
+      <div class="terminal-body" id="terminalBody">
+        <div class="term-line term-sys">◆ NEO LABS Terminal v0.3 — ready</div>
+        <div class="term-line term-dim">พิมพ์ข้อความใน chat dock เพื่อเริ่ม agent task...</div>
+      </div>
+    </div>
+
+    <!-- HISTORY VIEW -->
+    <div class="view" id="viewHistory">
+      <div class="history-toolbar">
+        <div class="history-stats" id="historyStats">0 TASKS</div>
+        <div class="history-actions">
+          <select class="control-select" id="historyFilter">
+            <option value="">ALL AGENTS</option>
+          </select>
+          <button class="clear-btn" id="exportAllBtn">📦 EXPORT ALL (.md)</button>
+          <button class="reset-btn" id="clearHistoryBtn">CLEAR</button>
+        </div>
+      </div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+    <!-- DATA VIEW -->
+    <div class="view" id="viewData">
+      <div class="data-tools">
+        <div class="data-total" id="dataTotal">TOTAL: 0 TASKS</div>
+        <button class="reset-btn" id="resetBtn">RESET STATS</button>
+      </div>
+      <div class="data-grid" id="dataGrid"></div>
+    </div>
+
+    <!-- FILES VIEW -->
+    <div class="view" id="viewFiles">
+      <div class="files-toolbar">
+        <div class="files-path">
+          <span class="files-path-label">PATH</span>
+          <span id="filesPath">workspace/</span>
+        </div>
+        <div class="files-actions">
+          <button class="reset-btn" id="filesRefreshBtn">🔄 REFRESH</button>
+          <button class="reset-btn" id="filesNewBtn">+ NEW FILE</button>
+          <button class="reset-btn" id="filesMkdirBtn">+ FOLDER</button>
+        </div>
+      </div>
+      <div class="files-layout">
+        <div class="files-tree" id="filesTree">
+          <div class="files-empty">กำลังโหลด...</div>
+        </div>
+        <div class="files-preview" id="filesPreview">
+          <div class="files-preview-empty">เลือกไฟล์ที่ tree ด้านซ้ายเพื่อดู content</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDITOR VIEW -->
+    <div class="view" id="viewEditor">
+      <div class="editor-toolbar">
+        <input type="text" class="editor-filename" id="editorFilename" placeholder="workspace/untitled.js" value="workspace/untitled.js">
+        <select class="control-select" id="editorLang">
+          <option value="javascript">JavaScript</option>
+          <option value="html">HTML</option>
+          <option value="css">CSS</option>
+          <option value="python">Python</option>
+          <option value="markdown">Markdown</option>
+          <option value="json">JSON</option>
+          <option value="typescript">TypeScript</option>
+        </select>
+        <button class="reset-btn" id="editorRunBtn">▶ RUN</button>
+        <button class="reset-btn" id="editorSaveBtn">💾 SAVE</button>
+        <button class="reset-btn" id="editorLoadBtn">📂 LOAD</button>
+        <button class="reset-btn" id="editorAiBtn">◆ ASK NEO</button>
+      </div>
+      <div class="editor-layout">
+        <div class="editor-host" id="editorHost"></div>
+        <div class="editor-output">
+          <div class="editor-output-head">
+            <span>OUTPUT / PREVIEW</span>
+            <button class="clear-btn" id="editorClearBtn">CLEAR</button>
+          </div>
+          <iframe class="editor-iframe" id="editorIframe" sandbox="allow-scripts allow-modals" srcdoc="<html><body style='background:#0d0d17;color:#7b7b8c;font-family:monospace;padding:20px;'>◆ กด RUN เพื่อรัน HTML/JS code</body></html>"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <!-- CANVAS VIEW -->
+    <div class="view" id="viewCanvas">
+      <div class="canvas-toolbar">
+        <button class="canvas-tool active" data-tool="select">↖ SELECT</button>
+        <button class="canvas-tool" data-tool="pen">✎ PEN</button>
+        <button class="canvas-tool" data-tool="rect">▭ RECT</button>
+        <button class="canvas-tool" data-tool="circle">◯ CIRCLE</button>
+        <button class="canvas-tool" data-tool="text">T TEXT</button>
+        <button class="canvas-tool" data-tool="arrow">→ ARROW</button>
+        <input type="color" class="canvas-color" id="canvasColor" value="#ff6b35">
+        <input type="range" class="canvas-size" id="canvasSize" min="1" max="30" value="3">
+        <span class="canvas-size-label" id="canvasSizeLabel">3</span>
+        <button class="reset-btn" id="canvasClearBtn">CLEAR</button>
+        <button class="reset-btn" id="canvasExportBtn">📷 PNG</button>
+        <button class="reset-btn" id="canvasSaveBtn">💾 SAVE</button>
+      </div>
+      <div class="canvas-host">
+        <canvas id="fabricCanvas"></canvas>
+      </div>
+    </div>
+
+    <!-- 3D VIEWER VIEW -->
+    <div class="view" id="viewViewer3d">
+      <div class="viewer3d-toolbar">
+        <textarea class="viewer3d-prompt" id="viewer3dPrompt" placeholder="อธิบายว่าจะ render อะไร เช่น 'NEO robot กระโดดอยู่ในอวกาศ มีดาวรอบข้าง' (AI จะเขียน Three.js code ให้)" rows="2"></textarea>
+        <div class="viewer3d-actions">
+          <button class="reset-btn" id="viewer3dGenBtn">◆ GENERATE</button>
+          <button class="reset-btn" id="viewer3dDemoBtn">▶ DEMO</button>
+          <button class="reset-btn" id="viewer3dCodeBtn">&lt;/&gt; CODE</button>
+        </div>
+      </div>
+      <div class="viewer3d-layout">
+        <div class="viewer3d-stage">
+          <iframe class="viewer3d-iframe" id="viewer3dIframe" sandbox="allow-scripts" srcdoc=""></iframe>
+        </div>
+        <div class="viewer3d-code" id="viewer3dCode" style="display:none;">
+          <textarea id="viewer3dCodeArea" readonly></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT DOCK -->
+    <div class="chat-dock">
+      <div class="dock-controls">
+        <div class="control">
+          <span>AGENT</span>
+          <select class="control-select" id="agentSelect"></select>
+        </div>
+        <div class="control">
+          <span>MODEL</span>
+          <select class="control-select" id="modelSelect">
+            <option value="claude-haiku-4-5-20251001">Haiku 4.5 (เร็ว)</option>
+            <option value="claude-sonnet-4-6">Sonnet 4.6 (สมดุล)</option>
+            <option value="claude-opus-4-7">Opus 4.7 (ฉลาด)</option>
+          </select>
+        </div>
+      </div>
+      <div class="dock-row">
+        <textarea class="dock-input" id="cmd" placeholder="พิมพ์ข้อความ... (Enter = ส่ง | Shift+Enter = ขึ้นบรรทัดใหม่)" rows="1"></textarea>
+        <button class="dock-send" id="sendBtn"><span>ส่ง</span><span>→</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">ACTIVITY FEED</div>
+      <button class="clear-btn" id="clearBtn">CLEAR</button>
+    </div>
+    <div class="feed" id="feed">
+      <div class="feed-empty">ยังไม่มีกิจกรรม — พิมพ์เพื่อเริ่มคุย</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   DATA — 9 agents (arranged in 3x3: top=leadership, mid=creative, bot=QA)
+   ============================================================ */
+const CHARS = [
+  { id:'neo',   name:'NEO',   color:'var(--neo)',   role:'CEO / Main',         hex:'#ff6b35' },
+  { id:'atlas', name:'ATLAS', color:'var(--atlas)', role:'Chief of Staff',     hex:'#14b8a6' },
+  { id:'nova',  name:'NOVA',  color:'var(--nova)',  role:'Research',           hex:'#a855f7' },
+  { id:'luna',  name:'LUNA',  color:'var(--luna)',  role:'UX/UI Designer',     hex:'#ec4899' },
+  { id:'pixel', name:'PIXEL', color:'var(--pixel)', role:'Slide Maker',        hex:'#22c55e' },
+  { id:'sage',  name:'SAGE',  color:'var(--sage)',  role:'Study Tutor',        hex:'#eab308' },
+  { id:'rex',   name:'REX',   color:'var(--rex)',   role:"Devil's Advocate",   hex:'#ef4444' },
+  { id:'byte',  name:'BYTE',  color:'var(--byte)',  role:'Code Reviewer',      hex:'#3b82f6' },
+  { id:'quill', name:'QUILL', color:'var(--quill)', role:'Copywriter',         hex:'#e5e5e5' },
+];
+
+/* pixel bot blueprint (10x10 grid) */
+const BODY = [
+  {r:1,c:1},{r:1,c:2}, {r:1,c:9},{r:1,c:10},
+  {r:2,c:1},{r:2,c:2},{r:2,c:3},{r:2,c:4},{r:2,c:5},{r:2,c:6},{r:2,c:7},{r:2,c:8},{r:2,c:9},{r:2,c:10},
+  {r:3,c:1},{r:3,c:2},{r:3,c:3},{r:3,c:4},{r:3,c:5},{r:3,c:6},{r:3,c:7},{r:3,c:8},{r:3,c:9},{r:3,c:10},
+  {r:4,c:1},{r:4,c:10},
+  {r:5,c:1},{r:5,c:10},
+  {r:6,c:1},{r:6,c:10},
+  {r:7,c:1},{r:7,c:10},
+  {r:8,c:1},{r:8,c:2},{r:8,c:3},{r:8,c:4},{r:8,c:5},{r:8,c:6},{r:8,c:7},{r:8,c:8},{r:8,c:9},{r:8,c:10},
+  {r:9,c:1},{r:9,c:2},{r:9,c:3},{r:9,c:4},{r:9,c:5},{r:9,c:6},{r:9,c:7},{r:9,c:8},{r:9,c:9},{r:9,c:10},
+  {r:10,c:1},{r:10,c:2}, {r:10,c:4},{r:10,c:5},{r:10,c:6},{r:10,c:7}, {r:10,c:9},{r:10,c:10},
+];
+
+const FACE_CELLS = [];
+for (let r=4;r<=7;r++) for (let c=2;c<=9;c++) FACE_CELLS.push({r,c});
+
+const FACES = {
+  neo:   { eye:[{r:4,c:3},{r:5,c:2},{r:5,c:3},{r:4,c:8},{r:5,c:8},{r:5,c:9}], mouth:[{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7}] },
+  atlas: { eye:[{r:5,c:3},{r:5,c:8}], mouth:[{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7}] },
+  nova:  { eye:[{r:4,c:2},{r:4,c:3},{r:5,c:2},{r:5,c:3},{r:4,c:8},{r:4,c:9},{r:5,c:8},{r:5,c:9}], mouth:[{r:6,c:5},{r:6,c:6},{r:7,c:5},{r:7,c:6}] },
+  luna:  { eye:[{r:4,c:3},{r:5,c:3},{r:4,c:8},{r:5,c:8}], mouth:[{r:6,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7},{r:6,c:8}] },
+  pixel: { eye:[{r:4,c:2},{r:4,c:3},{r:4,c:8},{r:4,c:9}], mouth:[{r:6,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7},{r:6,c:8}] },
+  sage:  { eye:[{r:4,c:3},{r:5,c:3},{r:4,c:8},{r:5,c:8}], mouth:[{r:7,c:5},{r:7,c:6}] },
+  rex:   { eye:[{r:4,c:2},{r:5,c:3},{r:5,c:8},{r:4,c:9}], mouth:[{r:7,c:3},{r:6,c:4},{r:7,c:5},{r:6,c:6},{r:7,c:7},{r:6,c:8}] },
+  byte:  { eye:[{r:4,c:2},{r:4,c:3},{r:5,c:2},{r:5,c:3},{r:4,c:8},{r:4,c:9},{r:5,c:8},{r:5,c:9}], mouth:[{r:7,c:3},{r:7,c:5},{r:7,c:7}] },
+  quill: { eye:[{r:4,c:3},{r:5,c:3},{r:5,c:7},{r:5,c:8},{r:5,c:9}], mouth:[{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:7}] },
+};
+
+function buildBotEl(id, color, klass) {
+  const bot = document.createElement('div');
+  bot.className = klass || 'bot-pixel';
+  bot.style.color = color;
+
+  const add = (r, c, cls) => {
+    const cell = document.createElement('div');
+    cell.className = 'p' + (cls ? ' ' + cls : '');
+    cell.style.gridRow = r;
+    cell.style.gridColumn = c;
+    bot.appendChild(cell);
+  };
+
+  BODY.forEach(p => add(p.r, p.c));
+  const face = FACES[id] || FACES.neo;
+  const eyeSet = new Set(face.eye.map(p => `${p.r},${p.c}`));
+  const mouthSet = new Set(face.mouth.map(p => `${p.r},${p.c}`));
+  FACE_CELLS.forEach(({r,c}) => {
+    const k = `${r},${c}`;
+    if (eyeSet.has(k)) add(r, c, 'eye');
+    else if (mouthSet.has(k)) add(r, c, 'mouth');
+    else add(r, c);
+  });
+  return bot;
+}
+
+/* ============================================================
+   STATE (persistent)
+   ============================================================ */
+const API = 'http://localhost:8000';
+const STATS_KEY = 'neo_labs_stats_v2';
+
+// stats = { agentId: { tasks: N, lastAt: ts, lastMsg: str, models: {model: count} } }
+let stats = JSON.parse(localStorage.getItem(STATS_KEY) || '{}');
+CHARS.forEach(c => {
+  if (!stats[c.id]) stats[c.id] = { tasks: 0, lastAt: null, lastMsg: '', models: {} };
+});
+function saveStats() { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); }
+
+let selectedAgent = 'neo';
+let isStreaming = false;
+
+/* ============================================================
+   BUILD ROOMS + BOTS (OFFICE VIEW)
+   ============================================================ */
+const rooms = document.getElementById('rooms');
+const botsLayer = document.getElementById('botsLayer');
+const floor = document.getElementById('floor');
+
+CHARS.forEach(ch => {
+  const room = document.createElement('div');
+  room.className = 'room';
+  room.dataset.id = ch.id;
+  room.style.color = ch.hex;
+  room.innerHTML = `<div class="room-name">${ch.name}</div>`;
+  rooms.appendChild(room);
+});
+
+const botWrappers = {};
+// initial positions: spread across 3x3 grid (relative to botsLayer)
+const INIT_POS = [
+  {x: 0.167, y: 0.20}, {x: 0.5, y: 0.20}, {x: 0.833, y: 0.20},
+  {x: 0.167, y: 0.50}, {x: 0.5, y: 0.50}, {x: 0.833, y: 0.50},
+  {x: 0.167, y: 0.80}, {x: 0.5, y: 0.80}, {x: 0.833, y: 0.80},
+];
+
+CHARS.forEach((ch, i) => {
+  const wrap = document.createElement('div');
+  wrap.className = 'bot-wrapper';
+  wrap.dataset.id = ch.id;
+  wrap.dataset.status = 'online';
+  wrap.style.color = ch.hex;
+
+  const tag = document.createElement('div');
+  tag.className = 'bot-tag';
+  tag.textContent = ch.name;
+
+  const pip = document.createElement('div');
+  pip.className = 'bot-pip';
+
+  wrap.appendChild(tag);
+  wrap.appendChild(buildBotEl(ch.id, ch.hex));
+  wrap.appendChild(pip);
+
+  botsLayer.appendChild(wrap);
+  botWrappers[ch.id] = {
+    el: wrap, ch,
+    x: 0, y: 0,       // pixel pos in botsLayer
+    tx: 0, ty: 0,     // target pos
+    walking: false,
+    dragging: false,
+    lastMove: Date.now(),
+    flip: 1,
+  };
+
+  // click to select (differentiate click from drag — see drag handlers)
+});
+
+function currentBounds() {
+  const rect = botsLayer.getBoundingClientRect();
+  return { w: rect.width, h: rect.height, left: rect.left, top: rect.top };
+}
+
+function initBotPositions() {
+  const { w, h } = currentBounds();
+  CHARS.forEach((ch, i) => {
+    const a = botWrappers[ch.id];
+    a.x = a.tx = INIT_POS[i].x * w - 25;
+    a.y = a.ty = INIT_POS[i].y * h - 25;
+    a.el.style.left = a.x + 'px';
+    a.el.style.top  = a.y + 'px';
+  });
+}
+requestAnimationFrame(initBotPositions);
+window.addEventListener('resize', () => { /* re-initialize or let them drift */ });
+
+/* ============================================================
+   DRAG + WALK
+   ============================================================ */
+let dragging = null;
+let dragOffset = {x: 0, y: 0};
+let dragStart = {x: 0, y: 0};
+let dragMoved = false;
+
+Object.values(botWrappers).forEach(a => {
+  a.el.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    dragging = a;
+    dragMoved = false;
+    const rect = a.el.getBoundingClientRect();
+    const bounds = currentBounds();
+    dragOffset.x = e.clientX - rect.left;
+    dragOffset.y = e.clientY - rect.top;
+    dragStart.x = e.clientX;
+    dragStart.y = e.clientY;
+    a.dragging = true;
+    a.el.classList.add('dragging');
+  });
+
+  a.el.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    const rect = a.el.getBoundingClientRect();
+    dragging = a;
+    dragMoved = false;
+    dragOffset.x = touch.clientX - rect.left;
+    dragOffset.y = touch.clientY - rect.top;
+    dragStart.x = touch.clientX;
+    dragStart.y = touch.clientY;
+    a.dragging = true;
+    a.el.classList.add('dragging');
+  }, { passive: true });
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  const bounds = currentBounds();
+  const nx = e.clientX - bounds.left - dragOffset.x;
+  const ny = e.clientY - bounds.top - dragOffset.y;
+  if (Math.hypot(e.clientX - dragStart.x, e.clientY - dragStart.y) > 4) dragMoved = true;
+  dragging.x = Math.max(0, Math.min(bounds.w - 50, nx));
+  dragging.y = Math.max(0, Math.min(bounds.h - 50, ny));
+  dragging.tx = dragging.x;
+  dragging.ty = dragging.y;
+  dragging.el.style.left = dragging.x + 'px';
+  dragging.el.style.top  = dragging.y + 'px';
+});
+
+window.addEventListener('touchmove', (e) => {
+  if (!dragging) return;
+  const touch = e.touches[0];
+  const bounds = currentBounds();
+  const nx = touch.clientX - bounds.left - dragOffset.x;
+  const ny = touch.clientY - bounds.top - dragOffset.y;
+  if (Math.hypot(touch.clientX - dragStart.x, touch.clientY - dragStart.y) > 4) dragMoved = true;
+  dragging.x = Math.max(0, Math.min(bounds.w - 50, nx));
+  dragging.y = Math.max(0, Math.min(bounds.h - 50, ny));
+  dragging.tx = dragging.x;
+  dragging.ty = dragging.y;
+  dragging.el.style.left = dragging.x + 'px';
+  dragging.el.style.top  = dragging.y + 'px';
+}, { passive: true });
+
+function endDrag() {
+  if (!dragging) return;
+  const a = dragging;
+  a.el.classList.remove('dragging');
+  a.dragging = false;
+  a.lastMove = Date.now();
+  // click (no drag) → select agent
+  if (!dragMoved) selectAgent(a.ch.id);
+  dragging = null;
+}
+window.addEventListener('mouseup', endDrag);
+window.addEventListener('touchend', endDrag);
+
+/* random walk around floor */
+function pickRandomTarget() {
+  const b = currentBounds();
+  return {
+    x: Math.random() * (b.w - 50),
+    y: Math.random() * (b.h - 50),
+  };
+}
+
+function tick() {
+  const now = Date.now();
+  Object.values(botWrappers).forEach(a => {
+    if (a.dragging) return;
+    const dx = a.tx - a.x;
+    const dy = a.ty - a.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist < 2) {
+      a.walking = false;
+      a.el.classList.remove('walking');
+      if (now - a.lastMove > 4000 + Math.random() * 8000) {
+        const t = pickRandomTarget();
+        a.tx = t.x; a.ty = t.y;
+        a.lastMove = now;
+      }
+    } else {
+      const step = 0.8;
+      a.x += (dx / dist) * step;
+      a.y += (dy / dist) * step;
+      a.walking = true;
+      a.el.classList.add('walking');
+      // flip based on direction
+      if (dx < -1) a.flip = -1;
+      else if (dx > 1) a.flip = 1;
+      a.el.style.setProperty('--flip', a.flip);
+    }
+
+    a.el.style.left = a.x + 'px';
+    a.el.style.top  = a.y + 'px';
+  });
+
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* ============================================================
+   AGENT SELECTION
+   ============================================================ */
+const agentSelect = document.getElementById('agentSelect');
+CHARS.forEach(ch => {
+  const opt = document.createElement('option');
+  opt.value = ch.id;
+  opt.textContent = `${ch.name} — ${ch.role}`;
+  agentSelect.appendChild(opt);
+});
+agentSelect.addEventListener('change', e => selectAgent(e.target.value));
+
+function selectAgent(id) {
+  selectedAgent = id;
+  Object.entries(botWrappers).forEach(([k, a]) => {
+    a.el.classList.toggle('active-bot', k === id);
+  });
+  // highlight room
+  Array.from(rooms.children).forEach(r => r.classList.toggle('highlight', r.dataset.id === id));
+  agentSelect.value = id;
+  const ch = CHARS.find(c => c.id === id);
+  speak(id, `เลือกแล้ว: ${ch.name}`);
+  document.getElementById('cmd').focus();
+}
+selectAgent('neo');
+
+/* ============================================================
+   SPEECH BUBBLE
+   ============================================================ */
+function speak(id, text) {
+  const a = botWrappers[id];
+  if (!a) return;
+  const old = a.el.querySelector('.bubble');
+  if (old) old.remove();
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  b.style.color = a.ch.hex;
+  b.textContent = text;
+  a.el.appendChild(b);
+  setTimeout(() => b.remove(), 4000);
+}
+
+/* ============================================================
+   ACTIVITY FEED
+   ============================================================ */
+const feed = document.getElementById('feed');
+let feedHasContent = false;
+
+function clearEmpty() {
+  if (!feedHasContent) {
+    feed.innerHTML = '';
+    feedHasContent = true;
+  }
+}
+
+function timeStr() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
+
+function addFeedItem(who, hex, msg, isUser = false, opts = {}) {
+  clearEmpty();
+  const item = document.createElement('div');
+  item.className = 'feed-item' + (isUser ? ' user' : '') + (opts.thinking ? ' thinking' : '');
+  item.style.borderLeftColor = hex;
+  item.style.color = hex;   // used by .dots span (currentColor)
+  item.innerHTML = `
+    <div><span class="who" style="color:${hex}">${who}</span><span class="msg"></span></div>
+    <div class="time">${timeStr()}</div>
+  `;
+  const msgEl = item.querySelector('.msg');
+  msgEl.textContent = msg;
+  if (opts.thinking) {
+    const dots = document.createElement('span');
+    dots.className = 'dots';
+    dots.innerHTML = '<span></span><span></span><span></span>';
+    msgEl.appendChild(dots);
+  }
+  feed.insertBefore(item, feed.firstChild);
+  while (feed.children.length > 80) feed.removeChild(feed.lastChild);
+  return item;
+}
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  feed.innerHTML = '<div class="feed-empty">Feed เคลียร์แล้ว</div>';
+  feedHasContent = false;
+});
+
+/* ============================================================
+   TERMINAL LOG + FLOWCHART
+   ============================================================ */
+const terminalBody = document.getElementById('terminalBody');
+
+function term(text, cls = 'term-info', tag = '') {
+  const line = document.createElement('div');
+  line.className = 'term-line ' + cls;
+  const ts = new Date();
+  const t = `${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}:${String(ts.getSeconds()).padStart(2,'0')}`;
+  line.innerHTML = `<span class="ts">[${t}]</span>${tag ? `<span class="tag">${tag}</span>` : ''}<span></span>`;
+  line.lastElementChild.textContent = text;
+  terminalBody.appendChild(line);
+  terminalBody.scrollTop = terminalBody.scrollHeight;
+  while (terminalBody.children.length > 200) terminalBody.removeChild(terminalBody.firstChild);
+  return line;
+}
+
+function setFlowStep(step) {
+  const order = ['idle', 'thinking', 'streaming', 'done'];
+  const idx = order.indexOf(step);
+  document.querySelectorAll('.flow-step').forEach(el => {
+    const i = order.indexOf(el.dataset.step);
+    el.classList.toggle('active', i === idx);
+    el.classList.toggle('complete', i < idx);
+    const dot = el.querySelector('.flow-dot');
+    if (i < idx) dot.textContent = '✓';
+    else dot.textContent = i + 1;
+  });
+}
+setFlowStep('idle');
+
+/* ============================================================
+   TASK HISTORY (persistent)
+   ============================================================ */
+const HIST_KEY = 'neo_labs_history_v2';
+let history = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+function saveHistory() { localStorage.setItem(HIST_KEY, JSON.stringify(history)); }
+
+function recordTask(task) {
+  history.unshift(task);
+  if (history.length > 200) history = history.slice(0, 200);
+  saveHistory();
+  renderHistory();
+}
+
+/* rough token estimate: Thai/English mix — 1 token ≈ 3 chars */
+function estimateTokens(str) { return Math.ceil((str || '').length / 3); }
+
+/* ============================================================
+   SEND MESSAGE
+   ============================================================ */
+const cmdInput = document.getElementById('cmd');
+const sendBtn = document.getElementById('sendBtn');
+
+async function sendMessage(overridePrompt) {
+  const raw = (overridePrompt !== undefined ? overridePrompt : cmdInput.value).trim();
+  if (!raw || isStreaming) return;
+  if (overridePrompt === undefined) { cmdInput.value = ''; autoResize(); }
+
+  const ch = CHARS.find(c => c.id === selectedAgent);
+  const model = document.getElementById('modelSelect').value;
+  const modelShort = model.replace('claude-','').replace('-20251001','');
+
+  addFeedItem('บอส', '#9090a0', raw, true);
+
+  /* ========== ORCHESTRATE MODE — short-circuit to /orchestrate ========== */
+  if (window.orchestrateMode) {
+    await runOrchestrate(raw, selectedAgent, model);
+    return;
+  }
+
+  /* terminal + flowchart: QUEUED → THINKING */
+  term(`task started → agent=${ch.name} model=${modelShort}`, 'term-sys', '►');
+  term(`prompt: "${raw.slice(0, 80)}${raw.length > 80 ? '...' : ''}"`, 'term-dim');
+  setFlowStep('thinking');
+  term(`${ch.name} is thinking...`, 'term-info', `[${ch.name}]`);
+
+  botWrappers[selectedAgent].el.dataset.status = 'thinking';
+  speak(selectedAgent, '...');
+  isStreaming = true;
+  sendBtn.disabled = true;
+
+  const item = addFeedItem(ch.name, ch.hex, '');
+  const msgEl = item.querySelector('.msg');
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  cursor.style.color = ch.hex;
+  msgEl.appendChild(cursor);
+
+  const taskId = 't_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  const startedAt = Date.now();
+  let text = '';
+
+  try {
+    const res = await fetch(`${API}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: raw,
+        agent: selectedAgent,
+        model,
+        conv_id: window.currentConvId || null,
+      }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    /* STREAMING */
+    setFlowStep('streaming');
+    term(`stream open — receiving chunks`, 'term-ok', `[${ch.name}]`);
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let chunkCount = 0;
+    let convMarkerBuf = '';
+    let convMarkerDone = false;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      let chunk = decoder.decode(value, { stream: true });
+      /* First chunk may contain \0CONV:<id>\0 marker — strip and set currentConvId */
+      if (!convMarkerDone) {
+        convMarkerBuf += chunk;
+        const m = convMarkerBuf.match(/^\u0000CONV:([^\u0000]+)\u0000/);
+        if (m) {
+          window.currentConvId = m[1];
+          chunk = convMarkerBuf.slice(m[0].length);
+          convMarkerBuf = '';
+          convMarkerDone = true;
+        } else if (convMarkerBuf.length > 64 || !convMarkerBuf.startsWith('\u0000')) {
+          /* no marker — flush what we buffered */
+          chunk = convMarkerBuf;
+          convMarkerBuf = '';
+          convMarkerDone = true;
+        } else {
+          continue;  /* still buffering */
+        }
+      }
+      text += chunk;
+      chunkCount++;
+      msgEl.textContent = text;
+      msgEl.appendChild(cursor);
+    }
+    cursor.remove();
+    /* Refresh conversations list (title may have been auto-set) */
+    if (window.refreshConvList) window.refreshConvList();
+
+    /* DONE */
+    const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
+    const inTok = estimateTokens(raw);
+    const outTok = estimateTokens(text);
+    setFlowStep('done');
+    term(`stream closed — ${chunkCount} chunks · ~${inTok} in · ~${outTok} out · ${elapsed}s`, 'term-ok', '✓');
+
+    /* update stats */
+    const s = stats[selectedAgent];
+    s.tasks += 1;
+    s.lastAt = Date.now();
+    s.lastMsg = text.slice(0, 200);
+    s.models[model] = (s.models[model] || 0) + 1;
+    saveStats();
+    renderDataView();
+
+    /* record to history */
+    recordTask({
+      id: taskId,
+      agentId: selectedAgent,
+      agentName: ch.name,
+      agentHex: ch.hex,
+      model,
+      prompt: raw,
+      response: text,
+      startedAt, completedAt: Date.now(),
+      elapsedSec: parseFloat(elapsed),
+      inTokens: inTok,
+      outTokens: outTok,
+      status: 'done',
+    });
+
+    botWrappers[selectedAgent].el.dataset.status = 'online';
+    speak(selectedAgent, text.slice(0, 50) + (text.length > 50 ? '...' : ''));
+
+    setTimeout(() => setFlowStep('idle'), 3000);
+  } catch (err) {
+    cursor.remove();
+    const msg = '⚠️ ติดต่อ server ไม่ได้ — ตรวจว่า uvicorn รันอยู่ที่ port 8000';
+    msgEl.textContent = msg;
+    botWrappers[selectedAgent].el.dataset.status = 'online';
+    updateConnectionStatus(false);
+    term(`error: ${err.message}`, 'term-err', '✗');
+    setFlowStep('idle');
+    recordTask({
+      id: taskId, agentId: selectedAgent, agentName: ch.name, agentHex: ch.hex,
+      model, prompt: raw, response: msg,
+      startedAt, completedAt: Date.now(), elapsedSec: 0,
+      inTokens: 0, outTokens: 0, status: 'error',
+    });
+  } finally {
+    isStreaming = false;
+    sendBtn.disabled = false;
+    cmdInput.focus();
+  }
+}
+
+sendBtn.addEventListener('click', sendMessage);
+
+cmdInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+function autoResize() {
+  cmdInput.style.height = 'auto';
+  cmdInput.style.height = Math.min(cmdInput.scrollHeight, 140) + 'px';
+}
+cmdInput.addEventListener('input', autoResize);
+
+/* ============================================================
+   DATA VIEW
+   ============================================================ */
+const dataGrid = document.getElementById('dataGrid');
+
+function renderDataView() {
+  dataGrid.innerHTML = '';
+  const allTasks = Object.values(stats).reduce((a,s) => a + s.tasks, 0);
+  const max = Math.max(1, ...Object.values(stats).map(s => s.tasks));
+
+  CHARS.forEach(ch => {
+    const s = stats[ch.id];
+    const pct = Math.round((s.tasks / max) * 100);
+    const topModel = Object.entries(s.models).sort((a,b) => b[1]-a[1])[0];
+    const modelName = topModel ? topModel[0].replace('claude-','').replace('-20251001','').split('-').slice(0,2).join(' ') : '—';
+
+    const card = document.createElement('div');
+    card.className = 'data-card';
+    card.style.color = ch.hex;
+    card.innerHTML = `
+      <button class="pick-btn" data-pick="${ch.id}">PICK</button>
+      <div class="data-header">
+        <div class="data-info">
+          <div class="data-name">${ch.name}</div>
+          <div class="data-role">${ch.role}</div>
+        </div>
+      </div>
+      <div class="data-stats">
+        <div class="stat">
+          <div class="stat-label">TASKS</div>
+          <div class="stat-value">${s.tasks}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">MODEL</div>
+          <div class="stat-value" style="font-size:11px;">${modelName}</div>
+        </div>
+      </div>
+      <div class="data-workload">
+        <div class="data-workload-label"><span>WORKLOAD</span><span class="val">${pct}%</span></div>
+        <div class="data-workload-bar"><div class="data-workload-fill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="data-last">
+        <div class="label">LAST MESSAGE ${s.lastAt ? '· ' + timeAgo(s.lastAt) : ''}</div>
+        <div>${s.lastMsg ? escapeHtml(s.lastMsg.slice(0, 120)) + (s.lastMsg.length > 120 ? '...' : '') : '— ยังไม่ได้คุย —'}</div>
+      </div>
+    `;
+    /* insert bot into header */
+    const header = card.querySelector('.data-header');
+    header.insertBefore(buildBotEl(ch.id, ch.hex, 'data-mini-bot'), header.firstChild);
+    /* pick button */
+    card.querySelector('.pick-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectAgent(ch.id);
+      switchView('office');
+    });
+    dataGrid.appendChild(card);
+  });
+
+  document.getElementById('dataTotal').textContent = `TOTAL: ${allTasks} TASKS`;
+}
+
+function timeAgo(ts) {
+  const diff = (Date.now() - ts) / 1000;
+  if (diff < 60) return `${Math.round(diff)}s ago`;
+  if (diff < 3600) return `${Math.round(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.round(diff/3600)}h ago`;
+  return `${Math.round(diff/86400)}d ago`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!confirm('รีเซ็ต stats ทั้งหมดเลยเหรอคะบอส?')) return;
+  CHARS.forEach(c => stats[c.id] = { tasks: 0, lastAt: null, lastMsg: '', models: {} });
+  saveStats();
+  renderDataView();
+});
+
+renderDataView();
+
+/* ============================================================
+   HISTORY VIEW + EXPORT
+   ============================================================ */
+const historyList = document.getElementById('historyList');
+const historyStats = document.getElementById('historyStats');
+const historyFilter = document.getElementById('historyFilter');
+
+/* populate filter options */
+(() => {
+  CHARS.forEach(ch => {
+    const opt = document.createElement('option');
+    opt.value = ch.id;
+    opt.textContent = ch.name;
+    historyFilter.appendChild(opt);
+  });
+})();
+
+function renderHistory() {
+  const filter = historyFilter.value;
+  const items = filter ? history.filter(t => t.agentId === filter) : history;
+  historyStats.textContent = `${items.length} / ${history.length} TASKS`;
+
+  if (!items.length) {
+    historyList.innerHTML = '<div class="hist-empty">ยังไม่มีงาน — พิมพ์ข้อความใน chat เพื่อบันทึกงานแรก</div>';
+    return;
+  }
+
+  historyList.innerHTML = '';
+  items.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'hist-item';
+    el.style.color = t.agentHex;
+    const when = new Date(t.completedAt);
+    const timeStr = `${when.toLocaleDateString()} ${String(when.getHours()).padStart(2,'0')}:${String(when.getMinutes()).padStart(2,'0')}`;
+    const modelShort = t.model.replace('claude-','').replace('-20251001','');
+
+    el.innerHTML = `
+      <div class="hist-head">
+        <div class="hist-head-left">
+          <span class="hist-agent">${t.agentName}</span>
+          <span class="hist-model">${modelShort}</span>
+          ${t.status === 'error' ? '<span class="hist-model" style="color:var(--rex);border-color:var(--rex)">ERROR</span>' : ''}
+        </div>
+        <span class="hist-time">${timeStr} · ${t.elapsedSec}s · ~${t.inTokens + t.outTokens} tok</span>
+      </div>
+      <div class="hist-prompt"></div>
+      <div class="hist-response"></div>
+      <div class="hist-actions">
+        <button class="hist-btn" data-act="toggle">EXPAND</button>
+        <button class="hist-btn retry" data-act="retry">↻ RETRY</button>
+        <button class="hist-btn" data-act="export-md">📥 MD</button>
+        <button class="hist-btn" data-act="export-txt">📥 TXT</button>
+        <button class="hist-btn" data-act="copy">📋 COPY</button>
+        <button class="hist-btn del" data-act="del">🗑 DEL</button>
+      </div>
+    `;
+    el.querySelector('.hist-prompt').textContent = '› ' + t.prompt;
+    el.querySelector('.hist-response').textContent = t.response;
+
+    el.querySelectorAll('.hist-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const act = btn.dataset.act;
+        if (act === 'toggle') {
+          const r = el.querySelector('.hist-response');
+          r.classList.toggle('expanded');
+          btn.textContent = r.classList.contains('expanded') ? 'COLLAPSE' : 'EXPAND';
+        } else if (act === 'retry') {
+          selectAgent(t.agentId);
+          document.getElementById('modelSelect').value = t.model;
+          cmdInput.value = t.prompt;
+          autoResize();
+          switchView('office');
+          cmdInput.focus();
+        } else if (act === 'export-md') exportTask(t, 'md');
+        else if (act === 'export-txt') exportTask(t, 'txt');
+        else if (act === 'copy') {
+          navigator.clipboard.writeText(t.response);
+          btn.textContent = '✓ COPIED';
+          setTimeout(() => btn.textContent = '📋 COPY', 1200);
+        } else if (act === 'del') {
+          history = history.filter(h => h.id !== t.id);
+          saveHistory();
+          renderHistory();
+        }
+      });
+    });
+
+    el.querySelector('.hist-head').addEventListener('click', () => {
+      const r = el.querySelector('.hist-response');
+      r.classList.toggle('expanded');
+      const btn = el.querySelector('[data-act="toggle"]');
+      btn.textContent = r.classList.contains('expanded') ? 'COLLAPSE' : 'EXPAND';
+    });
+
+    historyList.appendChild(el);
+  });
+}
+
+historyFilter.addEventListener('change', renderHistory);
+
+document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+  if (!confirm('ลบประวัติทั้งหมด?')) return;
+  history = [];
+  saveHistory();
+  renderHistory();
+});
+
+function downloadBlob(content, filename, type = 'text/plain') {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportTask(t, format) {
+  const when = new Date(t.completedAt).toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const safePrompt = t.prompt.slice(0, 30).replace(/[^\w\u0E00-\u0E7F]/g, '_');
+  const fname = `${t.agentName}_${when}_${safePrompt}.${format}`;
+  let content;
+  if (format === 'md') {
+    content = `# ${t.agentName} Response\n\n`
+      + `- **Agent:** ${t.agentName} (${t.agentId})\n`
+      + `- **Model:** ${t.model}\n`
+      + `- **Started:** ${new Date(t.startedAt).toLocaleString()}\n`
+      + `- **Elapsed:** ${t.elapsedSec}s\n`
+      + `- **Tokens:** ~${t.inTokens} in, ~${t.outTokens} out\n\n`
+      + `## Prompt\n\n${t.prompt}\n\n## Response\n\n${t.response}\n`;
+  } else {
+    content = `${t.agentName} — ${new Date(t.startedAt).toLocaleString()}\n`
+      + `Model: ${t.model}  |  ${t.elapsedSec}s  |  ~${t.inTokens}+${t.outTokens} tok\n`
+      + `${'─'.repeat(60)}\n\nPROMPT:\n${t.prompt}\n\n${'─'.repeat(60)}\n\nRESPONSE:\n${t.response}\n`;
+  }
+  downloadBlob(content, fname, format === 'md' ? 'text/markdown' : 'text/plain');
+}
+
+document.getElementById('exportAllBtn').addEventListener('click', () => {
+  if (!history.length) return alert('ยังไม่มีงานให้ export');
+  const lines = [`# NEO Labs — Task History\n\nExported: ${new Date().toLocaleString()}\nTotal: ${history.length} tasks\n\n---\n`];
+  history.forEach((t, i) => {
+    lines.push(`\n## ${i+1}. ${t.agentName} — ${new Date(t.startedAt).toLocaleString()}\n`);
+    lines.push(`*Model: ${t.model} · ${t.elapsedSec}s · ~${t.inTokens + t.outTokens} tokens*\n`);
+    lines.push(`\n**Prompt:** ${t.prompt}\n`);
+    lines.push(`\n**Response:**\n\n${t.response}\n\n---\n`);
+  });
+  downloadBlob(lines.join(''), `neo-labs-history-${Date.now()}.md`, 'text/markdown');
+});
+
+renderHistory();
+
+/* ============================================================
+   TAB SWITCHING
+   ============================================================ */
+function switchView(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === name));
+  ['office','terminal','history','data','files','editor','canvas','viewer3d'].forEach(v => {
+    const el = document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1));
+    if (el) el.classList.toggle('active', name === v);
+  });
+  if (name === 'history') renderHistory();
+  if (name === 'files') window.filesLoadTree && filesLoadTree();
+  if (name === 'editor') window.editorMount && editorMount();
+  if (name === 'canvas') window.canvasMount && canvasMount();
+  if (name === 'viewer3d') window.viewer3dInit && viewer3dInit();
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => switchView(t.dataset.view));
+});
+
+/* ============================================================
+   HEALTH CHECK
+   ============================================================ */
+const statusChip = document.getElementById('statusChip');
+const statusText = document.getElementById('statusText');
+
+function updateConnectionStatus(ok) {
+  statusChip.classList.toggle('offline', !ok);
+  statusText.textContent = ok ? 'API CONNECTED' : 'API OFFLINE';
+}
+
+async function checkHealth() {
+  try {
+    const res = await fetch(`${API}/health`, { cache: 'no-store' });
+    const data = await res.json();
+    updateConnectionStatus(data.status === 'ok' && data.api_key_loaded);
+  } catch (_) { updateConnectionStatus(false); }
+}
+checkHealth();
+setInterval(checkHealth, 10000);
+
+/* ============================================================
+   CLOCK
+   ============================================================ */
+function updateClock() {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* ============================================================
+   LIVE FEED — poll Claude Code hooks
+   ============================================================ */
+let lastTs = null;
+const pendingByCorr = new Map();   // corr → feed-item DOM node (thinking placeholders)
+
+function markRobotActive(agentId, active) {
+  const w = botWrappers[agentId]?.el;
+  if (!w) return;
+  if (active) w.setAttribute('data-presence', 'active');
+  else        w.removeAttribute('data-presence');
+}
+
+/* Apply a single activity entry to the UI (start → placeholder, done → final message) */
+function applyActivityEntry(e) {
+  const ch = CHARS.find(c => c.id === e.agent.toLowerCase());
+  if (!ch) return;
+
+  if (e.kind === 'start') {
+    const item = addFeedItem(ch.name, ch.hex, e.message || 'กำลังคิด', false, {thinking: true});
+    if (e.corr) pendingByCorr.set(e.corr, item);
+    markRobotActive(ch.id, true);
+    speak(ch.id, '...');
+  } else {
+    const placeholder = e.corr && pendingByCorr.get(e.corr);
+    if (placeholder && placeholder.isConnected) {
+      placeholder.classList.remove('thinking');
+      const msgEl = placeholder.querySelector('.msg');
+      if (msgEl) { msgEl.innerHTML = ''; msgEl.textContent = e.message; }
+      pendingByCorr.delete(e.corr);
+    } else {
+      addFeedItem(ch.name, ch.hex, e.message);
+    }
+    markRobotActive(ch.id, false);
+    speak(ch.id, e.message.slice(0, 50));
+  }
+}
+
+/* Initial load: fetch current state once via HTTP */
+async function loadActivityInitial() {
+  try {
+    const res = await fetch(`${API}/activity`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const entries = await res.json();
+    if (entries.length) lastTs = entries[0].ts;   // mark "known" — don't replay history into feed
+  } catch (_) {}
+}
+
+/* WebSocket feed — push new entries in real-time. Auto-reconnect with backoff.
+   Falls back to HTTP polling if WS repeatedly fails. */
+let ws = null;
+let wsRetry = 0;
+let pollFallbackTimer = null;
+
+function connectActivityWS() {
+  if (ws && (ws.readyState === 0 || ws.readyState === 1)) return;  // already connecting/open
+  const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url = `${scheme}://${location.host}/ws/activity`;
+  try {
+    ws = new WebSocket(url);
+  } catch {
+    scheduleReconnect();
+    return;
+  }
+  ws.addEventListener('open', () => {
+    wsRetry = 0;
+    if (pollFallbackTimer) { clearInterval(pollFallbackTimer); pollFallbackTimer = null; }
+  });
+  ws.addEventListener('message', (ev) => {
+    try {
+      const e = JSON.parse(ev.data);
+      if (!e || !e.ts) return;
+      if (lastTs && e.ts <= lastTs) return;   // ignore stale
+      lastTs = e.ts;
+      applyActivityEntry(e);
+    } catch {}
+  });
+  ws.addEventListener('close', () => { scheduleReconnect(); });
+  ws.addEventListener('error', () => { try { ws.close(); } catch {} });
+}
+
+function scheduleReconnect() {
+  wsRetry += 1;
+  const delay = Math.min(15000, 500 * 2 ** Math.min(wsRetry, 5));   // 0.5s → 16s
+  setTimeout(connectActivityWS, delay);
+  // Start polling fallback after ~3 failed attempts so the feed keeps working
+  if (wsRetry >= 3 && !pollFallbackTimer) {
+    pollFallbackTimer = setInterval(pollActivityOnce, 2500);
+  }
+}
+
+async function pollActivityOnce() {
+  try {
+    const res = await fetch(`${API}/activity`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const entries = await res.json();
+    const news = lastTs ? entries.filter(e => e.ts > lastTs) : [];
+    if (entries.length && !lastTs) lastTs = entries[0].ts;
+    if (!news.length) return;
+    lastTs = entries[0].ts;
+    news.reverse().forEach(applyActivityEntry);
+  } catch {}
+}
+
+/* ============================================================
+   ORCHESTRATE MODE — NEO delegates to specialists
+   ============================================================ */
+window.orchestrateMode = false;
+const orchToggleBtn = document.getElementById('orchToggle');
+
+function setOrchMode(on) {
+  window.orchestrateMode = !!on;
+  orchToggleBtn.classList.toggle('on', window.orchestrateMode);
+  term(`orchestrate mode: ${window.orchestrateMode ? 'ON — NEO จะ delegate ให้ specialists' : 'OFF'}`, 'term-sys', '◆');
+}
+orchToggleBtn?.addEventListener('click', () => setOrchMode(!window.orchestrateMode));
+
+function addHandoffItem(fromAgent, toAgent, task) {
+  clearEmpty();
+  const feedEl = document.getElementById('feed');
+  const d = document.createElement('div');
+  d.className = 'feed-handoff';
+  d.innerHTML = `
+    <span class="from" style="color:${fromAgent.hex}">${fromAgent.name}</span>
+    <span class="arrow">→</span>
+    <span class="to" style="color:${toAgent.hex}">${toAgent.name}</span>
+    <span class="task">${escapeHtml(task)}</span>
+  `;
+  feedEl.insertBefore(d, feedEl.firstChild);
+}
+
+const TOOL_ICONS = {
+  write_file: '📝', read_file: '📖', edit_file: '✏️',
+  list_files: '📂', make_dir: '📁', delete_file: '🗑️',
+};
+
+function addToolCard(agentId, toolName, input, result) {
+  clearEmpty();
+  const feedEl = document.getElementById('feed');
+  const ch = CHARS.find(c => c.id === agentId) || CHARS[0];
+  const ok = result?.ok !== false;
+  const path = input?.path || '—';
+  const icon = TOOL_ICONS[toolName] || '🔧';
+  const statusText = ok
+    ? (toolName === 'write_file' ? `✅ ${result.size || 0} bytes`
+      : toolName === 'edit_file' ? `✅ edited (${result.size || 0}b)`
+      : toolName === 'delete_file' ? '✅ deleted'
+      : toolName === 'make_dir' ? '✅ created'
+      : toolName === 'read_file' ? `✅ read (${result.size || 0}b)`
+      : '✅ ok')
+    : `✗ ${result?.error || 'failed'}`;
+
+  const card = document.createElement('div');
+  card.className = 'feed-tool' + (ok ? '' : ' error');
+  const actionsHtml = ok && (toolName === 'write_file' || toolName === 'edit_file')
+    ? `<div class="feed-tool-actions">
+         <button class="feed-tool-btn" data-open="${escapeHtml(path)}">Open</button>
+         <button class="feed-tool-btn" data-download="${escapeHtml(path)}">Download</button>
+       </div>` : '';
+  card.innerHTML = `
+    <div class="feed-tool-head">
+      <span class="feed-tool-icon">${icon}</span>
+      <span class="feed-tool-name">${toolName}</span>
+      <span class="feed-tool-agent" style="color:${ch.hex}">${ch.name}</span>
+      <span class="feed-tool-path">${escapeHtml(path)}</span>
+      <span class="feed-tool-status">${statusText}</span>
+    </div>
+    ${actionsHtml}
+  `;
+  feedEl.insertBefore(card, feedEl.firstChild);
+
+  card.querySelector('[data-open]')?.addEventListener('click', (e) => {
+    openFileInEditor(e.target.dataset.open);
+  });
+  card.querySelector('[data-download]')?.addEventListener('click', async (e) => {
+    downloadFile(e.target.dataset.download);
+  });
+
+  /* Auto-refresh files tree if it has been initialized */
+  if (window.refreshFilesTree) window.refreshFilesTree();
+}
+
+async function openFileInEditor(path) {
+  try {
+    const res = await fetch(`${API}/files/read?path=${encodeURIComponent(path)}`);
+    if (!res.ok) { term('read failed: ' + res.status, 'term-err', '✗'); return; }
+    const data = await res.json();
+    /* Switch to EDITOR tab and load — or show in modal if editor not ready */
+    const editorTab = document.querySelector('.tab[data-view="editor"]');
+    if (editorTab) editorTab.click();
+    if (window.loadFileIntoEditor) {
+      window.loadFileIntoEditor(path, data.content || '');
+    } else {
+      alert(`${path}\n\n${data.content || '(binary)'}`);
+    }
+  } catch (e) {
+    term('open failed: ' + e.message, 'term-err', '✗');
+  }
+}
+
+async function downloadFile(path) {
+  try {
+    const res = await fetch(`${API}/files/read?path=${encodeURIComponent(path)}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const blob = new Blob([data.content || ''], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = path.split('/').pop();
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    term('download failed: ' + e.message, 'term-err', '✗');
+  }
+}
+
+async function runOrchestrate(prompt, rootAgentId, model) {
+  const rootCh = CHARS.find(c => c.id === rootAgentId);
+  term(`🎭 ORCHESTRATE — root=${rootCh.name} model=${model.replace('claude-','').replace('-20251001','')}`, 'term-sys', '►');
+  term(`prompt: "${prompt.slice(0, 80)}${prompt.length > 80 ? '...' : ''}"`, 'term-dim');
+  setFlowStep('thinking');
+
+  botWrappers[rootAgentId].el.dataset.status = 'thinking';
+  speak(rootAgentId, '...');
+  isStreaming = true;
+  sendBtn.disabled = true;
+
+  const startedAt = Date.now();
+  /* Track active feed item per agent so multiple text events on same agent append */
+  const activeItems = {};
+
+  try {
+    const res = await fetch(`${API}/orchestrate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, agent: rootAgentId, model }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    setFlowStep('streaming');
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();  // keep partial
+      for (const line of lines) {
+        const s = line.trim();
+        if (!s) continue;
+        try {
+          const ev = JSON.parse(s);
+          handleOrchEvent(ev, activeItems);
+        } catch (e) {
+          console.warn('bad NDJSON line', s, e);
+        }
+      }
+    }
+    if (buf.trim()) {
+      try { handleOrchEvent(JSON.parse(buf.trim()), activeItems); } catch {}
+    }
+
+    const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
+    setFlowStep('done');
+    term(`orchestrate done · ${elapsed}s`, 'term-ok', '✓');
+  } catch (e) {
+    term(`orchestrate error: ${e.message}`, 'term-err', '✗');
+    addFeedItem('ERROR', '#ef4444', 'orchestrate failed: ' + e.message);
+  } finally {
+    botWrappers[rootAgentId].el.dataset.status = 'idle';
+    isStreaming = false;
+    sendBtn.disabled = false;
+    if (window.refreshConvList) window.refreshConvList();
+  }
+}
+
+function handleOrchEvent(ev, activeItems) {
+  const ch = CHARS.find(c => c.id === ev.agent) || CHARS.find(c => c.id === ev.to) || null;
+  if (ev.type === 'start') {
+    term(`${ch?.name || ev.agent} thinking...`, 'term-info', `[${ch?.name || ev.agent}]`);
+    if (botWrappers[ev.agent]) {
+      botWrappers[ev.agent].el.dataset.status = 'thinking';
+      speak(ev.agent, '...');
+    }
+  } else if (ev.type === 'handoff') {
+    const fromCh = CHARS.find(c => c.id === ev.from);
+    const toCh = CHARS.find(c => c.id === ev.to);
+    if (fromCh && toCh) {
+      addHandoffItem(fromCh, toCh, ev.task);
+      term(`${fromCh.name} → ${toCh.name}: ${ev.task.slice(0, 60)}${ev.task.length > 60 ? '...' : ''}`, 'term-ok', '→');
+    }
+  } else if (ev.type === 'tool_call') {
+    addToolCard(ev.agent, ev.tool, ev.input || {}, ev.result || {});
+    const ok = ev.result?.ok !== false;
+    const path = ev.input?.path || '';
+    term(`${ev.agent} · ${ev.tool}(${path}) → ${ok ? 'OK' : 'FAIL'}`, ok ? 'term-ok' : 'term-err', ok ? '🔧' : '✗');
+  } else if (ev.type === 'text') {
+    if (!ch) return;
+    /* Append to existing item or create new */
+    let item = activeItems[ev.agent];
+    if (!item) {
+      item = addFeedItem(ch.name, ch.hex, '');
+      activeItems[ev.agent] = item;
+    }
+    const msgEl = item.querySelector('.msg');
+    msgEl.textContent = (msgEl.textContent || '') + ev.text;
+    speak(ev.agent, ev.text.slice(0, 80));
+  } else if (ev.type === 'done') {
+    term(`${ch?.name || ev.agent} done`, 'term-ok', '✓');
+    if (botWrappers[ev.agent]) botWrappers[ev.agent].el.dataset.status = 'idle';
+    activeItems[ev.agent] = null;
+  } else if (ev.type === 'error') {
+    term(`orchestrate error: ${ev.message}`, 'term-err', '✗');
+  }
+}
+
+/* ============================================================
+   CONVERSATIONS PANEL — SQLite persistence
+   ============================================================ */
+window.currentConvId = null;
+
+const convPanel = document.getElementById('convPanel');
+const convBackdrop = document.getElementById('convBackdrop');
+const convList = document.getElementById('convList');
+const convOpenBtn = document.getElementById('convOpenBtn');
+const convCloseBtn = document.getElementById('convClose');
+const convNewBtn = document.getElementById('convNewBtn');
+
+function openConvPanel() {
+  convPanel.classList.add('open');
+  convBackdrop.classList.add('open');
+  refreshConvList();
+}
+function closeConvPanel() {
+  convPanel.classList.remove('open');
+  convBackdrop.classList.remove('open');
+}
+
+convOpenBtn?.addEventListener('click', openConvPanel);
+convCloseBtn?.addEventListener('click', closeConvPanel);
+convBackdrop?.addEventListener('click', closeConvPanel);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && convPanel.classList.contains('open')) closeConvPanel();
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'h') {
+    e.preventDefault();
+    convPanel.classList.contains('open') ? closeConvPanel() : openConvPanel();
+  }
+});
+
+function fmtRelTime(ms) {
+  const d = (Date.now() - ms) / 1000;
+  if (d < 60) return 'just now';
+  if (d < 3600) return Math.floor(d/60) + 'm';
+  if (d < 86400) return Math.floor(d/3600) + 'h';
+  return Math.floor(d/86400) + 'd';
+}
+
+async function refreshConvList() {
+  try {
+    const res = await fetch(`${API}/conversations`);
+    if (!res.ok) {
+      convList.innerHTML = '<div class="conv-empty">โหลดไม่สำเร็จ — login ก่อน</div>';
+      return;
+    }
+    const rows = await res.json();
+    if (!rows.length) {
+      convList.innerHTML = '<div class="conv-empty">ยังไม่มีประวัติ — เริ่มคุยเพื่อสร้าง conversation แรก</div>';
+      return;
+    }
+    const agentColor = (a) => (CHARS.find(c => c.id === a) || {}).hex || '#999';
+    convList.innerHTML = rows.map(r => `
+      <div class="conv-row${r.id === window.currentConvId ? ' active' : ''}" data-id="${r.id}">
+        <div class="conv-row-body">
+          <div class="conv-row-title">${escapeHtml(r.title)}</div>
+          <div class="conv-row-meta">
+            <span class="conv-row-agent" style="color:${agentColor(r.agent)}">${r.agent.toUpperCase()}</span>
+            · ${fmtRelTime(r.updated_at)}
+          </div>
+        </div>
+        <button class="conv-row-del" data-del="${r.id}" title="Delete">×</button>
+      </div>
+    `).join('');
+  } catch (e) {
+    convList.innerHTML = '<div class="conv-empty">error: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+window.refreshConvList = refreshConvList;
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+convList.addEventListener('click', async (e) => {
+  const delBtn = e.target.closest('[data-del]');
+  if (delBtn) {
+    e.stopPropagation();
+    const id = delBtn.dataset.del;
+    if (!confirm('ลบ conversation นี้?')) return;
+    await fetch(`${API}/conversations/${id}`, { method: 'DELETE' });
+    if (window.currentConvId === id) window.currentConvId = null;
+    refreshConvList();
+    return;
+  }
+  const row = e.target.closest('.conv-row');
+  if (row) loadConversation(row.dataset.id);
+});
+
+async function loadConversation(id) {
+  try {
+    const res = await fetch(`${API}/conversations/${id}`);
+    if (!res.ok) return;
+    const conv = await res.json();
+    if (conv.error) return;
+    window.currentConvId = id;
+    /* clear feed and replay messages */
+    const feedEl = document.getElementById('feed');
+    feedEl.innerHTML = '';
+    (conv.messages || []).forEach(m => {
+      if (m.role === 'user') {
+        addFeedItem('บอส', '#9090a0', m.content, true);
+      } else {
+        const ch = CHARS.find(c => c.id === m.agent) || CHARS[0];
+        addFeedItem(ch.name, ch.hex, m.content);
+      }
+    });
+    closeConvPanel();
+    refreshConvList();
+    term(`loaded conversation: ${conv.title} (${(conv.messages||[]).length} msgs)`, 'term-ok', '✓');
+  } catch (e) {
+    console.error('loadConversation failed', e);
+  }
+}
+
+convNewBtn?.addEventListener('click', () => {
+  window.currentConvId = null;
+  document.getElementById('feed').innerHTML = '<div class="feed-empty">ใหม่ — พิมพ์เพื่อเริ่ม</div>';
+  refreshConvList();
+  closeConvPanel();
+  term('new conversation started', 'term-sys', '►');
+});
+
+/* Initial load — non-blocking */
+refreshConvList();
+
+loadActivityInitial().then(connectActivityWS);
+
+</script>
+
+<!-- Monaco loader (loaded lazily when EDITOR tab opens) -->
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+<!-- Fabric.js for Canvas (loaded lazily) -->
+
+<script>
+/* ============================================================
+   FILES MODULE — tree walker + preview + CRUD (wired to /files/*)
+   ============================================================ */
+const FILES_API = API + '/files';
+let _filesSelected = null;
+
+async function filesLoadTree() {
+  const container = document.getElementById('filesTree');
+  container.innerHTML = '<div class="files-empty">กำลังโหลด...</div>';
+  try {
+    const res = await fetch(FILES_API + '/tree?path=&depth=4');
+    const tree = await res.json();
+    container.innerHTML = '';
+    container.appendChild(_filesRenderNode(tree, true));
+  } catch (e) {
+    container.innerHTML = '<div class="files-empty" style="color:var(--rex);">Error: ' + e.message + '</div>';
+  }
+}
+
+function _filesRenderNode(node, isRoot = false) {
+  const el = document.createElement('div');
+  el.className = 'file-node ' + (node.type === 'dir' ? 'folder' : '');
+  if (node.path === _filesSelected) el.classList.add('selected');
+
+  const icon = document.createElement('span');
+  icon.className = 'icon';
+  icon.textContent = node.type === 'dir' ? '▸' : _filesIconFor(node.ext);
+  el.appendChild(icon);
+
+  const name = document.createElement('span');
+  name.textContent = node.name;
+  el.appendChild(name);
+
+  if (node.type === 'file') {
+    const size = document.createElement('span');
+    size.className = 'size';
+    size.textContent = _filesFormatSize(node.size);
+    el.appendChild(size);
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.appendChild(el);
+
+  if (node.type === 'dir' && node.children && node.children.length) {
+    const kids = document.createElement('div');
+    kids.className = 'children';
+    kids.style.display = isRoot ? 'block' : 'none';
+    node.children.forEach(c => kids.appendChild(_filesRenderNode(c)));
+    wrapper.appendChild(kids);
+
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = kids.style.display !== 'none';
+      kids.style.display = open ? 'none' : 'block';
+      icon.textContent = open ? '▸' : '▾';
+    });
+  } else if (node.type === 'file') {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      _filesSelected = node.path;
+      filesLoadTree();
+      filesPreviewFile(node.path);
+    });
+  }
+
+  return wrapper;
+}
+
+function _filesIconFor(ext) {
+  const map = {
+    '.js':'⚡', '.ts':'⚡', '.html':'◐', '.css':'✦', '.json':'⬢',
+    '.md':'📝', '.py':'🐍', '.txt':'📄', '.png':'🖼', '.jpg':'🖼',
+    '.fab.json':'🎨',
+  };
+  return map[ext] || '·';
+}
+
+function _filesFormatSize(b) {
+  if (b < 1024) return b + 'B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + 'K';
+  return (b/1024/1024).toFixed(1) + 'M';
+}
+
+async function filesPreviewFile(path) {
+  const preview = document.getElementById('filesPreview');
+  preview.innerHTML = '<div class="files-preview-empty">กำลังโหลด ' + path + '...</div>';
+  try {
+    const res = await fetch(FILES_API + '/read?path=' + encodeURIComponent(path));
+    const data = await res.json();
+    if (data.type === 'binary') {
+      preview.innerHTML = '<div class="files-preview-head"><span>' + path + '</span><span>' + _filesFormatSize(data.size) + ' (binary)</span></div><div class="files-preview-empty">Binary file — preview ไม่ได้</div>';
+      return;
+    }
+    const head = document.createElement('div');
+    head.className = 'files-preview-head';
+    head.innerHTML = '<span>' + path + '</span>'
+      + '<span style="display:flex;gap:8px;">'
+      + '<button class="clear-btn" onclick="filesOpenInEditor(\'' + path.replace(/'/g,"\\'") + '\')">OPEN IN EDITOR</button>'
+      + '<button class="clear-btn" style="color:var(--rex);border-color:var(--rex);" onclick="filesDeleteCurrent()">DELETE</button>'
+      + '</span>';
+    const body = document.createElement('pre');
+    body.className = 'files-preview-content';
+    body.textContent = data.content;
+    preview.innerHTML = '';
+    preview.appendChild(head);
+    preview.appendChild(body);
+  } catch (e) {
+    preview.innerHTML = '<div class="files-preview-empty" style="color:var(--rex);">Error: ' + e.message + '</div>';
+  }
+}
+
+window.filesOpenInEditor = async function(path) {
+  switchView('editor');
+  document.getElementById('editorFilename').value = path;
+  const ext = path.slice(path.lastIndexOf('.'));
+  const langMap = {'.js':'javascript','.ts':'typescript','.html':'html','.css':'css','.py':'python','.md':'markdown','.json':'json'};
+  document.getElementById('editorLang').value = langMap[ext] || 'javascript';
+  await editorMount();
+  const res = await fetch(FILES_API + '/read?path=' + encodeURIComponent(path));
+  const data = await res.json();
+  if (data.content != null && window._monacoEditor) {
+    _monacoEditor.setValue(data.content);
+    monaco.editor.setModelLanguage(_monacoEditor.getModel(), langMap[ext] || 'javascript');
+  }
+};
+
+window.filesDeleteCurrent = async function() {
+  if (!_filesSelected) return;
+  if (!confirm('ลบ ' + _filesSelected + ' จริงหรือ?')) return;
+  const res = await fetch(FILES_API + '/delete', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ path: _filesSelected })
+  });
+  if (res.ok) {
+    _filesSelected = null;
+    document.getElementById('filesPreview').innerHTML = '<div class="files-preview-empty">ลบแล้ว</div>';
+    filesLoadTree();
+  }
+};
+
+document.getElementById('filesRefreshBtn').addEventListener('click', filesLoadTree);
+document.getElementById('filesNewBtn').addEventListener('click', async () => {
+  const name = prompt('ชื่อไฟล์ใหม่ (เช่น notes.md)');
+  if (!name) return;
+  await fetch(FILES_API + '/write', {
+    method:'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ path: name, content: '' })
+  });
+  filesLoadTree();
+});
+document.getElementById('filesMkdirBtn').addEventListener('click', async () => {
+  const name = prompt('ชื่อ folder ใหม่');
+  if (!name) return;
+  await fetch(FILES_API + '/mkdir', {
+    method:'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ path: name })
+  });
+  filesLoadTree();
+});
+
+
+/* ============================================================
+   EDITOR MODULE — Monaco + sandbox runner
+   ============================================================ */
+let _monacoEditor = null;
+let _monacoLoading = false;
+
+async function editorMount() {
+  const host = document.getElementById('editorHost');
+  if (_monacoEditor) return;
+  if (_monacoLoading) return;
+  _monacoLoading = true;
+  await new Promise((resolve, reject) => {
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }});
+    require(['vs/editor/editor.main'], () => {
+      _monacoEditor = monaco.editor.create(host, {
+        value: `// สวัสดีบอส — Monaco Editor พร้อมใช้งาน\n// กด ▶ RUN เพื่อรันใน sandbox\n\nconsole.log('Hello from NEO Labs!');\nconsole.log(1 + 2 + 3);\n`,
+        language: document.getElementById('editorLang').value,
+        theme: 'vs-dark',
+        fontSize: 13,
+        minimap: { enabled: false },
+        automaticLayout: true,
+        scrollBeyondLastLine: false,
+      });
+      resolve();
+    });
+  });
+  _monacoLoading = false;
+}
+
+function editorRun() {
+  if (!_monacoEditor) return;
+  const code = _monacoEditor.getValue();
+  const lang = document.getElementById('editorLang').value;
+  const iframe = document.getElementById('editorIframe');
+  let doc;
+  if (lang === 'html') {
+    doc = code;
+  } else if (lang === 'javascript' || lang === 'typescript') {
+    doc = `<!DOCTYPE html><html><head><style>
+      body{background:#0d0d17;color:#e8e8f0;font-family:'JetBrains Mono',monospace;font-size:12px;padding:14px;margin:0;}
+      .log{border-bottom:1px solid #1c1c2e;padding:4px 0;}
+      .err{color:#ef4444;}
+      .warn{color:#eab308;}
+    </style></head><body><div id="out"></div>
+    <script>
+      const out = document.getElementById('out');
+      const push = (cls, args) => {
+        const div = document.createElement('div');
+        div.className = 'log ' + cls;
+        div.textContent = args.map(a => typeof a === 'object' ? JSON.stringify(a,null,2) : String(a)).join(' ');
+        out.appendChild(div);
+      };
+      const _log = console.log, _err = console.error, _warn = console.warn;
+      console.log = (...a) => { _log(...a); push('', a); };
+      console.error = (...a) => { _err(...a); push('err', a); };
+      console.warn = (...a) => { _warn(...a); push('warn', a); };
+      window.onerror = (m) => push('err', [m]);
+      try { ${code} } catch(e) { push('err', [e.message]); }
+    <\/script></body></html>`;
+  } else if (lang === 'css') {
+    doc = `<!DOCTYPE html><html><head><style>${code}</style></head><body><div class="demo"><h1>CSS Preview</h1><p>แก้ CSS ข้างซ้าย → preview ขวา</p><button>Button</button></div></body></html>`;
+  } else {
+    doc = `<html><body style="background:#0d0d17;color:#7b7b8c;font-family:monospace;padding:20px;">Language "${lang}" ยัง run ใน sandbox ไม่ได้ — lang ที่ run ได้: html, javascript, css</body></html>`;
+  }
+  iframe.srcdoc = doc;
+}
+
+async function editorSave() {
+  if (!_monacoEditor) return;
+  let path = document.getElementById('editorFilename').value.trim();
+  if (!path) { alert('ใส่ชื่อไฟล์ก่อน'); return; }
+  if (path.startsWith('workspace/')) path = path.slice('workspace/'.length);
+  const content = _monacoEditor.getValue();
+  try {
+    const res = await fetch(FILES_API + '/write', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ path, content })
+    });
+    const data = await res.json();
+    const btn = document.getElementById('editorSaveBtn');
+    const orig = btn.textContent;
+    btn.textContent = '✓ SAVED';
+    setTimeout(() => btn.textContent = orig, 1000);
+  } catch (e) { alert('Save failed: ' + e.message); }
+}
+
+async function editorLoad() {
+  let path = document.getElementById('editorFilename').value.trim();
+  if (!path) return;
+  if (path.startsWith('workspace/')) path = path.slice('workspace/'.length);
+  try {
+    const res = await fetch(FILES_API + '/read?path=' + encodeURIComponent(path));
+    const data = await res.json();
+    if (data.content != null && _monacoEditor) _monacoEditor.setValue(data.content);
+  } catch (e) { alert('Load failed: ' + e.message); }
+}
+
+async function editorAskNeo() {
+  if (!_monacoEditor) return;
+  const current = _monacoEditor.getValue();
+  const question = prompt('ถาม NEO (เช่น "เพิ่ม function random", "refactor ให้สะอาด", "fix bug"):');
+  if (!question) return;
+  const lang = document.getElementById('editorLang').value;
+  const fullPrompt = `ฉันมี ${lang} code นี้:\n\n\`\`\`${lang}\n${current}\n\`\`\`\n\nคำขอ: ${question}\n\nตอบกลับเป็น code ทั้งไฟล์ (wrap ใน \`\`\`) + คำอธิบายสั้นๆ`;
+
+  const btn = document.getElementById('editorAiBtn');
+  btn.textContent = '◆ THINKING...';
+
+  try {
+    const res = await fetch(API + '/chat', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt: fullPrompt, agent: 'byte', model: 'claude-sonnet-4-6' })
+    });
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let acc = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      acc += decoder.decode(value, { stream: true });
+    }
+    // extract code block
+    const m = acc.match(/```(?:\w+)?\n([\s\S]*?)```/);
+    if (m) _monacoEditor.setValue(m[1]);
+    else alert(acc.slice(0, 500));
+  } catch (e) {
+    alert('NEO error: ' + e.message);
+  } finally {
+    btn.textContent = '◆ ASK NEO';
+  }
+}
+
+document.getElementById('editorRunBtn').addEventListener('click', editorRun);
+document.getElementById('editorSaveBtn').addEventListener('click', editorSave);
+document.getElementById('editorLoadBtn').addEventListener('click', editorLoad);
+document.getElementById('editorAiBtn').addEventListener('click', editorAskNeo);
+document.getElementById('editorClearBtn').addEventListener('click', () => {
+  document.getElementById('editorIframe').srcdoc = '<html><body style="background:#0d0d17;"></body></html>';
+});
+document.getElementById('editorLang').addEventListener('change', () => {
+  if (_monacoEditor) monaco.editor.setModelLanguage(_monacoEditor.getModel(), document.getElementById('editorLang').value);
+});
+
+
+/* ============================================================
+   CANVAS MODULE — Fabric.js whiteboard
+   ============================================================ */
+let _fabric = null;
+let _fabricTool = 'select';
+let _fabricLoading = false;
+
+async function canvasMount() {
+  if (_fabric) return;
+  if (_fabricLoading) return;
+  _fabricLoading = true;
+  // load Fabric.js lazily
+  await new Promise((resolve, reject) => {
+    if (window.fabric) return resolve();
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  const host = document.querySelector('.canvas-host');
+  const canvasEl = document.getElementById('fabricCanvas');
+  canvasEl.width = host.clientWidth - 20;
+  canvasEl.height = host.clientHeight - 20;
+  _fabric = new fabric.Canvas('fabricCanvas', {
+    backgroundColor: '#fafafa',
+    selection: true,
+  });
+  _fabricLoading = false;
+  canvasWireToolbar();
+}
+
+function canvasWireToolbar() {
+  const color = () => document.getElementById('canvasColor').value;
+  const size = () => parseInt(document.getElementById('canvasSize').value, 10);
+  document.querySelectorAll('.canvas-tool').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.canvas-tool').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _fabricTool = btn.dataset.tool;
+      _fabric.isDrawingMode = _fabricTool === 'pen';
+      if (_fabricTool === 'pen') {
+        _fabric.freeDrawingBrush.color = color();
+        _fabric.freeDrawingBrush.width = size();
+      }
+    });
+  });
+  document.getElementById('canvasColor').addEventListener('change', () => {
+    if (_fabric.isDrawingMode) _fabric.freeDrawingBrush.color = color();
+    const active = _fabric.getActiveObject();
+    if (active) { active.set('stroke', color()); active.set('fill', color()); _fabric.renderAll(); }
+  });
+  document.getElementById('canvasSize').addEventListener('input', (e) => {
+    document.getElementById('canvasSizeLabel').textContent = e.target.value;
+    if (_fabric.isDrawingMode) _fabric.freeDrawingBrush.width = size();
+  });
+
+  _fabric.on('mouse:down', (opt) => {
+    if (_fabricTool === 'select' || _fabricTool === 'pen') return;
+    const pointer = _fabric.getPointer(opt.e);
+    if (_fabricTool === 'rect') {
+      _fabric.add(new fabric.Rect({
+        left: pointer.x, top: pointer.y, width: 100, height: 60,
+        stroke: color(), fill: 'transparent', strokeWidth: size(),
+      }));
+    } else if (_fabricTool === 'circle') {
+      _fabric.add(new fabric.Circle({
+        left: pointer.x, top: pointer.y, radius: 40,
+        stroke: color(), fill: 'transparent', strokeWidth: size(),
+      }));
+    } else if (_fabricTool === 'text') {
+      const t = new fabric.IText('พิมพ์...', {
+        left: pointer.x, top: pointer.y, fill: color(), fontSize: 20 + size() * 2,
+        fontFamily: 'Prompt',
+      });
+      _fabric.add(t); _fabric.setActiveObject(t); t.enterEditing();
+    } else if (_fabricTool === 'arrow') {
+      const line = new fabric.Line([pointer.x, pointer.y, pointer.x + 100, pointer.y], {
+        stroke: color(), strokeWidth: size(),
+      });
+      _fabric.add(line);
+    }
+  });
+
+  document.getElementById('canvasClearBtn').addEventListener('click', () => {
+    if (confirm('ล้าง canvas?')) _fabric.clear();
+    _fabric.backgroundColor = '#fafafa';
+    _fabric.renderAll();
+  });
+  document.getElementById('canvasExportBtn').addEventListener('click', () => {
+    const data = _fabric.toDataURL({ format: 'png', multiplier: 2 });
+    const a = document.createElement('a');
+    a.href = data; a.download = 'neo-canvas-' + Date.now() + '.png'; a.click();
+  });
+  document.getElementById('canvasSaveBtn').addEventListener('click', async () => {
+    const json = JSON.stringify(_fabric.toJSON());
+    const name = prompt('บันทึกชื่อ:', 'canvas-' + Date.now() + '.fab.json');
+    if (!name) return;
+    await fetch(FILES_API + '/write', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ path: name, content: json })
+    });
+    alert('บันทึกแล้วใน workspace/' + name);
+  });
+}
+
+
+/* ============================================================
+   3D VIEWER MODULE — prompt → Three.js → iframe
+   ============================================================ */
+let _viewer3dCurrentCode = '';
+const VIEWER3D_DEMO = `
+const geometry = new THREE.IcosahedronGeometry(1.2, 0);
+const material = new THREE.MeshStandardMaterial({ color: 0xff6b35, flatShading: true, metalness: 0.3, roughness: 0.4 });
+const mesh = new THREE.Mesh(geometry, material);
+scene.add(mesh);
+
+const light = new THREE.DirectionalLight(0xffffff, 2);
+light.position.set(3, 5, 3);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x888899, 0.5));
+
+// Orbiting starfield
+const stars = new THREE.BufferGeometry();
+const positions = [];
+for (let i = 0; i < 400; i++) positions.push((Math.random()-0.5)*20, (Math.random()-0.5)*20, (Math.random()-0.5)*20);
+stars.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+scene.add(new THREE.Points(stars, new THREE.PointsMaterial({ color: 0xa855f7, size: 0.03 })));
+
+camera.position.z = 4;
+animate(() => {
+  mesh.rotation.x += 0.005;
+  mesh.rotation.y += 0.01;
+});
+`.trim();
+
+function viewer3dInit() {
+  if (!_viewer3dCurrentCode) {
+    _viewer3dCurrentCode = VIEWER3D_DEMO;
+    viewer3dRender(VIEWER3D_DEMO);
+  }
+}
+
+function viewer3dRender(sceneCode) {
+  _viewer3dCurrentCode = sceneCode;
+  document.getElementById('viewer3dCodeArea').value = sceneCode;
+  const html = `<!DOCTYPE html><html><head><style>
+    body{margin:0;overflow:hidden;background:#000;}
+    canvas{display:block;}
+    .err{position:fixed;top:10px;left:10px;background:#ef4444;color:#fff;font-family:monospace;padding:10px;border-radius:6px;max-width:80%;font-size:11px;}
+  </style></head>
+  <body><div id="stage"></div>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"><\/script>
+  <script>
+    const container = document.getElementById('stage');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x07070d);
+    container.appendChild(renderer.domElement);
+    const _callbacks = [];
+    function animate(fn) { _callbacks.push(fn); }
+    try {
+      ${sceneCode}
+    } catch(e) {
+      const d = document.createElement('div');
+      d.className = 'err'; d.textContent = 'Scene error: ' + e.message;
+      document.body.appendChild(d);
+    }
+    let mouseX = 0, mouseY = 0;
+    document.addEventListener('mousemove', e => {
+      mouseX = (e.clientX / window.innerWidth - 0.5) * 0.5;
+      mouseY = (e.clientY / window.innerHeight - 0.5) * 0.5;
+    });
+    function loop() {
+      requestAnimationFrame(loop);
+      _callbacks.forEach(fn => { try { fn(); } catch(e) {} });
+      // gentle orbit based on mouse
+      if (camera.position.length() > 0.1) {
+        const r = Math.sqrt(camera.position.x**2 + camera.position.z**2);
+        const a = Math.atan2(camera.position.x, camera.position.z) + mouseX * 0.02;
+        camera.position.x = Math.sin(a) * r;
+        camera.position.z = Math.cos(a) * r;
+        camera.position.y += (mouseY * 2 - camera.position.y) * 0.03;
+        camera.lookAt(0,0,0);
+      }
+      renderer.render(scene, camera);
+    }
+    loop();
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth/window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  <\/script></body></html>`;
+  document.getElementById('viewer3dIframe').srcdoc = html;
+}
+
+async function viewer3dGenerate() {
+  const prompt = document.getElementById('viewer3dPrompt').value.trim();
+  if (!prompt) { alert('ใส่คำอธิบาย scene ก่อน'); return; }
+  const btn = document.getElementById('viewer3dGenBtn');
+  btn.textContent = '◆ GENERATING...';
+  try {
+    const res = await fetch(API + '/gen3d', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt, model: 'claude-sonnet-4-6' })
+    });
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let acc = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      acc += decoder.decode(value, { stream: true });
+    }
+    // strip markdown fences if any
+    let code = acc.trim();
+    const m = code.match(/```(?:javascript|js)?\n?([\s\S]*?)```/);
+    if (m) code = m[1].trim();
+    viewer3dRender(code);
+  } catch (e) {
+    alert('Generation failed: ' + e.message);
+  } finally {
+    btn.textContent = '◆ GENERATE';
+  }
+}
+
+document.getElementById('viewer3dGenBtn').addEventListener('click', viewer3dGenerate);
+document.getElementById('viewer3dDemoBtn').addEventListener('click', () => viewer3dRender(VIEWER3D_DEMO));
+document.getElementById('viewer3dCodeBtn').addEventListener('click', () => {
+  const el = document.getElementById('viewer3dCode');
+  const layout = document.querySelector('.viewer3d-layout');
+  const visible = el.style.display !== 'none';
+  el.style.display = visible ? 'none' : 'block';
+  layout.classList.toggle('with-code', !visible);
+});
+
+
+/* ============================================================
+   AGENT DASHBOARD — bot halo + click drawer
+   ============================================================ */
+function setBotStatus(agentId, status) {
+  document.querySelectorAll('.bot-pixel[data-agent="'+agentId+'"]').forEach(el => {
+    const wrapper = el.closest('.bot-wrap, .bot-slot, .bot-cell') || el.parentElement;
+    if (!wrapper) return;
+    wrapper.classList.remove('bot-halo','idle','thinking','streaming','done');
+    wrapper.classList.add('bot-halo', status);
+    wrapper.style.color = (getComputedStyle(document.documentElement).getPropertyValue('--'+agentId) || '#fff').trim();
+  });
+}
+window.setBotStatus = setBotStatus;
+
+function openAgentDrawer(agent) {
+  let drawer = document.getElementById('agentDrawer');
+  if (!drawer) {
+    drawer = document.createElement('div');
+    drawer.id = 'agentDrawer';
+    drawer.className = 'agent-drawer';
+    document.body.appendChild(drawer);
+  }
+  const stats = getAgentStats(agent.id);
+  drawer.innerHTML = `
+    <div class="agent-drawer-head">
+      <div class="agent-drawer-title" style="color:${agent.color};">${agent.name}</div>
+      <button class="agent-drawer-close" onclick="document.getElementById('agentDrawer').classList.remove('open')">×</button>
+    </div>
+    <div style="color:var(--muted);font-size:11px;margin-bottom:16px;letter-spacing:1px;">${agent.role.toUpperCase()}</div>
+    <div class="agent-drawer-stat"><span>TASKS TODAY</span><b>${stats.today}</b></div>
+    <div class="agent-drawer-stat"><span>TOTAL TASKS</span><b>${stats.total}</b></div>
+    <div class="agent-drawer-stat"><span>AVG RESPONSE</span><b>${stats.avgSec}s</b></div>
+    <div class="agent-drawer-stat"><span>TOKENS OUT</span><b>${stats.tokensOut}</b></div>
+    <div class="agent-drawer-stat"><span>LAST SEEN</span><b>${stats.lastSeen}</b></div>
+    ${stats.lastTask ? '<div class="agent-drawer-task"><b style="color:'+agent.color+';display:block;margin-bottom:4px;">LAST TASK</b>'+stats.lastTask+'</div>' : ''}
+  `;
+  drawer.classList.add('open');
+}
+window.openAgentDrawer = openAgentDrawer;
+
+function getAgentStats(agentId) {
+  try {
+    const history = JSON.parse(localStorage.getItem('neo_history') || '[]');
+    const my = history.filter(t => t.agentId === agentId);
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const today = my.filter(t => t.completedAt >= todayStart.getTime());
+    const avgSec = my.length ? (my.reduce((s,t)=>s+(t.elapsedSec||0),0)/my.length).toFixed(1) : '0';
+    const tokensOut = my.reduce((s,t)=>s+(t.outTokens||0),0);
+    const lastSeen = my.length ? new Date(my[my.length-1].completedAt).toLocaleString() : '—';
+    const lastTask = my.length ? (my[my.length-1].prompt||'').slice(0,120) : '';
+    return { today: today.length, total: my.length, avgSec, tokensOut, lastSeen, lastTask };
+  } catch (e) {
+    return { today: 0, total: 0, avgSec: '0', tokensOut: 0, lastSeen: '—', lastTask: '' };
+  }
+}
+
+// wire click-to-open drawer on all bots
+document.addEventListener('click', (e) => {
+  const bot = e.target.closest('.bot-pixel');
+  if (!bot) return;
+  const id = bot.dataset.agent;
+  if (!id) return;
+  const agent = CHARS.find(c => c.id === id);
+  if (agent) openAgentDrawer(agent);
+});
+
+
+/* ============================================================
+   CHAT v2 — multi-turn context (เก็บ message history)
+   ============================================================ */
+window._chatThread = [];
+function chatThreadReset() { window._chatThread = []; }
+function chatThreadPush(role, content) { window._chatThread.push({ role, content }); }
+window.chatThreadReset = chatThreadReset;
+window.chatThreadPush = chatThreadPush;
+</script>
+</body>
+</html>

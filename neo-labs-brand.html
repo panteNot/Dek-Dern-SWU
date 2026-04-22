@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEO LABS — Brand Guidelines</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;900&family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-deep: #07070d;
+  --bg-1:    #0d0d17;
+  --bg-2:    #141421;
+  --bg-3:    #1c1c2e;
+  --line:    rgba(255,255,255,0.07);
+  --line-2:  rgba(255,255,255,0.15);
+  --fg:      #f5f5ff;
+  --muted:   #8888a0;
+  --dim:     #4a4a5a;
+
+  --neo:   #ff6b35;
+  --atlas: #14b8a6;
+  --nova:  #a855f7;
+  --luna:  #ec4899;
+  --pixel: #22c55e;
+  --sage:  #eab308;
+  --rex:   #ef4444;
+  --byte:  #3b82f6;
+  --quill: #e5e5e5;
+
+  --grad-primary:   linear-gradient(135deg, var(--neo), var(--luna), var(--nova));
+  --grad-secondary: linear-gradient(135deg, var(--byte), var(--atlas));
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg-deep); color: var(--fg);
+  font-family: 'Prompt', system-ui, sans-serif;
+  line-height: 1.6; overflow-x: hidden;
+}
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -2;
+  background:
+    radial-gradient(ellipse at 15% 10%, rgba(255,107,53,0.13), transparent 45%),
+    radial-gradient(ellipse at 85% 60%, rgba(168,85,247,0.10), transparent 45%),
+    var(--bg-deep);
+}
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: -1;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse at center, rgba(0,0,0,1) 30%, transparent 70%);
+}
+
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ============ NAV ============ */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 18px 40px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(7,7,13,0.8); backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--line);
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 18px;
+}
+.logo-box {
+  width: 32px; height: 32px; border-radius: 6px;
+  background: var(--grad-primary);
+  box-shadow: 0 0 20px rgba(255,107,53,0.4);
+  display: grid; place-items: center; font-size: 16px;
+}
+.nav-links { display: flex; gap: 28px; font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+.nav-links a { color: var(--muted); text-decoration: none; transition: color .2s; }
+.nav-links a:hover { color: var(--fg); }
+
+/* ============ HERO ============ */
+.hero {
+  min-height: 72vh; padding: 140px 40px 80px;
+  display: flex; flex-direction: column; justify-content: center;
+  max-width: 1200px; margin: 0 auto;
+}
+.hero .eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  color: var(--neo); letter-spacing: 2px; margin-bottom: 20px;
+}
+.hero h1 {
+  font-size: clamp(48px, 8vw, 96px); font-weight: 800; line-height: 1.05;
+  letter-spacing: -0.03em; margin-bottom: 24px;
+}
+.hero h1 .grad {
+  background: var(--grad-primary);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hero p {
+  font-size: 20px; color: var(--muted); max-width: 680px;
+}
+
+/* ============ SECTION ============ */
+section { padding: 80px 40px; max-width: 1200px; margin: 0 auto; }
+.section-head {
+  display: flex; align-items: baseline; gap: 16px; margin-bottom: 40px;
+  padding-bottom: 16px; border-bottom: 1px solid var(--line);
+}
+.section-num {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--neo);
+  letter-spacing: 2px;
+}
+.section-head h2 {
+  font-size: 32px; font-weight: 700; letter-spacing: -0.02em;
+}
+.section-head .lead {
+  margin-left: auto; color: var(--muted); font-size: 14px; max-width: 400px; text-align: right;
+}
+
+/* ============ LOGO SHOWCASE ============ */
+.logo-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+.logo-card {
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: 16px;
+  padding: 40px; display: flex; flex-direction: column; align-items: center; gap: 20px;
+  transition: transform .2s, border-color .2s;
+}
+.logo-card:hover { transform: translateY(-4px); border-color: var(--line-2); }
+.logo-card .label {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--muted); letter-spacing: 2px; text-transform: uppercase;
+}
+.big-logo { width: 80px; height: 80px; border-radius: 16px; display: grid; place-items: center; font-family: 'JetBrains Mono', monospace; font-weight: 900; font-size: 36px; }
+.lg-primary { background: var(--grad-primary); box-shadow: 0 0 40px rgba(255,107,53,0.5); }
+.lg-dark { background: var(--bg-deep); border: 2px solid var(--line-2); color: var(--neo); }
+.lg-light { background: var(--fg); color: var(--bg-deep); }
+.lg-mono { background: var(--bg-2); color: var(--fg); }
+
+/* ============ PALETTE ============ */
+.palette {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;
+}
+.swatch {
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: 14px;
+  overflow: hidden; transition: transform .2s;
+}
+.swatch:hover { transform: translateY(-3px); }
+.swatch .chip {
+  height: 100px; display: flex; align-items: flex-end; padding: 14px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1px;
+}
+.swatch .meta { padding: 14px 16px; }
+.swatch .name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.swatch .role { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+.swatch .hex { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim); }
+
+.palette-bg { margin-top: 20px; }
+.bg-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+}
+.bg-cell {
+  height: 80px; border-radius: 10px; border: 1px solid var(--line);
+  display: flex; align-items: flex-end; padding: 10px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted);
+}
+
+/* ============ TYPE ============ */
+.type-block {
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: 16px;
+  padding: 32px; margin-bottom: 16px;
+}
+.type-block .tag {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--neo);
+  letter-spacing: 2px; margin-bottom: 12px;
+}
+.type-block .specimen { margin-bottom: 16px; }
+.type-block .specs { color: var(--muted); font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+.sp-1 { font-size: 56px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.sp-2 { font-size: 32px; font-weight: 700; letter-spacing: -0.01em; }
+.sp-3 { font-size: 18px; font-weight: 400; color: var(--fg); }
+.sp-4 { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--atlas); }
+
+/* ============ COMPONENTS ============ */
+.components {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;
+}
+.comp-card {
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: 16px; padding: 24px;
+}
+.comp-card h4 {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--neo); letter-spacing: 2px; margin-bottom: 16px;
+}
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 22px; border-radius: 100px; font-weight: 600; font-size: 13px;
+  text-decoration: none; border: none; cursor: pointer; font-family: 'Prompt';
+  transition: transform .2s, box-shadow .2s;
+}
+.btn-primary {
+  background: var(--grad-primary); color: white;
+  box-shadow: 0 4px 24px rgba(255,107,53,0.3);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(255,107,53,0.5); }
+.btn-ghost {
+  background: transparent; color: var(--fg); border: 1px solid var(--line-2);
+}
+.btn-ghost:hover { border-color: var(--neo); color: var(--neo); }
+.btn-mono {
+  background: var(--bg-2); color: var(--fg); font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; border: 1px solid var(--line);
+}
+
+.pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 100px; font-size: 12px;
+  background: rgba(255,107,53,0.12); color: var(--neo); border: 1px solid rgba(255,107,53,0.3);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.chip-agent {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 6px; font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600;
+}
+.dot { width: 8px; height: 8px; border-radius: 2px; box-shadow: 0 0 8px currentColor; }
+
+/* ============ DOS / DONTS ============ */
+.rules {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+}
+.rule {
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: 16px;
+  padding: 24px;
+}
+.rule.do { border-left: 3px solid var(--pixel); }
+.rule.dont { border-left: 3px solid var(--rex); }
+.rule h4 {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  letter-spacing: 2px; margin-bottom: 14px;
+}
+.rule.do h4 { color: var(--pixel); }
+.rule.dont h4 { color: var(--rex); }
+.rule ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.rule li { font-size: 14px; color: var(--fg); padding-left: 22px; position: relative; }
+.rule.do li::before { content: '+'; position: absolute; left: 0; color: var(--pixel); font-weight: 800; }
+.rule.dont li::before { content: '-'; position: absolute; left: 0; color: var(--rex); font-weight: 800; }
+
+/* ============ VOICE ============ */
+.voice-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;
+}
+.voice-card {
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: 14px;
+  padding: 20px; border-top: 2px solid var(--neo);
+}
+.voice-card h5 { font-size: 14px; margin-bottom: 8px; font-weight: 700; }
+.voice-card p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.voice-card:nth-child(2) { border-top-color: var(--byte); }
+.voice-card:nth-child(3) { border-top-color: var(--nova); }
+.voice-card:nth-child(4) { border-top-color: var(--pixel); }
+
+/* ============ SAMPLE QUOTES ============ */
+.quote-card {
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: 16px;
+  padding: 24px; margin-bottom: 12px;
+}
+.quote-card .who {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--muted); letter-spacing: 2px; margin-bottom: 10px;
+}
+.quote-card blockquote {
+  font-size: 16px; color: var(--fg); font-weight: 500; line-height: 1.5;
+  border-left: 3px solid var(--neo); padding-left: 16px;
+}
+
+/* ============ FOOTER ============ */
+footer {
+  padding: 60px 40px; border-top: 1px solid var(--line);
+  text-align: center; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; letter-spacing: 1px;
+}
+
+@media (max-width: 720px) {
+  nav { padding: 14px 20px; }
+  .nav-links { display: none; }
+  section, .hero { padding-left: 20px; padding-right: 20px; }
+  .rules { grid-template-columns: 1fr; }
+  .bg-row { grid-template-columns: repeat(2, 1fr); }
+  .section-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .section-head .lead { margin-left: 0; text-align: left; }
+}
+</style>
+<script src="neo-theme.js?v=1"></script>
+<script src="neo-cmdk.js?v=5" defer></script>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <div class="logo-box">N</div>
+    <span>NEO_LABS</span>
+  </div>
+  <div class="nav-links">
+    <a href="#logo">LOGO</a>
+    <a href="#color">COLOR</a>
+    <a href="#type">TYPE</a>
+    <a href="#ui">UI</a>
+    <a href="#voice">VOICE</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="eyebrow">BRAND GUIDELINES · v1.0 · 2026</div>
+  <h1>NEO <span class="grad">LABS</span><br>Brand System</h1>
+  <p>Visual identity, palette, typography, and voice guidelines for every NEO Labs artifact — landing pages, slide decks, docs, UI, and client-facing deliverables.</p>
+</div>
+
+<!-- ============ LOGO ============ -->
+<section id="logo">
+  <div class="section-head">
+    <span class="section-num">01</span>
+    <h2>Logo & Mark</h2>
+    <span class="lead">The mark is a pixel-robot N — chunky, confident, unmistakable at 32px or 320px.</span>
+  </div>
+  <div class="logo-grid">
+    <div class="logo-card">
+      <div class="big-logo lg-primary">N</div>
+      <div class="label">PRIMARY</div>
+    </div>
+    <div class="logo-card">
+      <div class="big-logo lg-dark">N</div>
+      <div class="label">OUTLINE · DARK BG</div>
+    </div>
+    <div class="logo-card">
+      <div class="big-logo lg-light">N</div>
+      <div class="label">INVERTED · LIGHT BG</div>
+    </div>
+    <div class="logo-card">
+      <div class="big-logo lg-mono">N</div>
+      <div class="label">MONOCHROME</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COLOR ============ -->
+<section id="color">
+  <div class="section-head">
+    <span class="section-num">02</span>
+    <h2>Color System</h2>
+    <span class="lead">9 agent colors + 4 background tiers. Each agent owns one hue — never swap.</span>
+  </div>
+
+  <div class="palette">
+    <div class="swatch">
+      <div class="chip" style="background:#ff6b35;color:#fff;">NEO</div>
+      <div class="meta"><div class="name">NEO Orange</div><div class="role">CEO · Primary accent</div><div class="hex">#FF6B35</div></div>
+    </div>
+    <div class="swatch">
+      <div class="chip" style="background:#14b8a6;color:#fff;">ATLAS</div>
+      <div class="meta"><div class="name">Atlas Teal</div><div class="role">Chief of Staff</div><div class="hex">#14B8A6</div></div>
+    </div>
+    <div class="swatch">
+      <div class="chip" style="background:#a855f7;color:#fff;">NOVA</div>
+      <div class="meta"><div class="name">Nova Purple</div><div class="role">Research</div><div class="hex">#A855F7</div></div>
+    </div>
+    <div class="swatch">
+      <div class="chip" style="background:#ec4899;color:#fff;">LUNA</div>
+      <div class="meta"><div class="name">Luna Pink</div><div class="role">UX/UI Design</div><div class="hex">#EC4899</div></div>
+    </div>
+    <div class="swatch">
+      <div class="chip" style="background:#22c55e;color:#000;">PIXEL</div>
+      <div class="meta"><div class="name">Pixel Green</div><div class="role">Slide Maker</div><div class="hex">#22C55E</div></div>
+    </div>
+    <div class="swatch">
+      <div class="chip" style="background:#eab308;color:#000;">SAGE</div>
+      <div class="meta"><div class="name">Sage Yellow</div><div class="role">Study Tutor</div><div class="hex">#EAB308</div></div>
+    </div>
+    <div class="swatch">
+      <div class="chip" style="background:#ef4444;color:#fff;">REX</div>
+      <div class="meta"><div class="name">Rex Red</div><div class="role">Devil's Advocate</div><div class="hex">#EF4444</div></div>
+    </div>
+    <div class="swatch">
+      <div class="chip" style="background:#3b82f6;color:#fff;">BYTE</div>
+      <div class="meta"><div class="name">Byte Blue</div><div class="role">Code Reviewer</div><div class="hex">#3B82F6</div></div>
+    </div>
+    <div class="swatch">
+      <div class="chip" style="background:#e5e5e5;color:#000;">QUILL</div>
+      <div class="meta"><div class="name">Quill White</div><div class="role">Copywriter</div><div class="hex">#E5E5E5</div></div>
+    </div>
+  </div>
+
+  <div class="palette-bg">
+    <h4 style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin:32px 0 12px;">BACKGROUND TIERS · DARK MODE DEFAULT</h4>
+    <div class="bg-row">
+      <div class="bg-cell" style="background:#07070d;">bg-deep · #07070D</div>
+      <div class="bg-cell" style="background:#0d0d17;">bg-1 · #0D0D17</div>
+      <div class="bg-cell" style="background:#141421;">bg-2 · #141421</div>
+      <div class="bg-cell" style="background:#1c1c2e;">bg-3 · #1C1C2E</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TYPE ============ -->
+<section id="type">
+  <div class="section-head">
+    <span class="section-num">03</span>
+    <h2>Typography</h2>
+    <span class="lead">Prompt for Thai + display. JetBrains Mono for code, labels, and technical chrome.</span>
+  </div>
+
+  <div class="type-block">
+    <div class="tag">DISPLAY · PROMPT 800</div>
+    <div class="specimen sp-1">NEO Labs ทำงานได้จริง</div>
+    <div class="specs">Prompt 56px / 800 / letter-spacing -0.02em · Hero headlines, section titles</div>
+  </div>
+  <div class="type-block">
+    <div class="tag">HEADING · PROMPT 700</div>
+    <div class="specimen sp-2">Autonomous multi-agent orchestration</div>
+    <div class="specs">Prompt 32px / 700 / letter-spacing -0.01em · H2, card titles</div>
+  </div>
+  <div class="type-block">
+    <div class="tag">BODY · PROMPT 400</div>
+    <div class="specimen sp-3">NEO เป็น AI org ที่บอสคุมได้ทั้ง 9 agent ภายใต้ persona เดียว — สั่งงานครั้งเดียว ระบบแตกงานเอง</div>
+    <div class="specs">Prompt 18px / 400 / line-height 1.6 · Paragraphs, long-form content</div>
+  </div>
+  <div class="type-block">
+    <div class="tag">MONO · JETBRAINS MONO 400</div>
+    <div class="specimen sp-4">const neo = new Agent({ persona: 'ceo', team: 9 })</div>
+    <div class="specs">JetBrains Mono 14px · Code, labels, eyebrows, data tags</div>
+  </div>
+</section>
+
+<!-- ============ UI COMPONENTS ============ -->
+<section id="ui">
+  <div class="section-head">
+    <span class="section-num">04</span>
+    <h2>UI Components</h2>
+    <span class="lead">Buttons, pills, agent chips — dark-mode first, always with glow on primary action.</span>
+  </div>
+  <div class="components">
+    <div class="comp-card">
+      <h4>BUTTONS</h4>
+      <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-start;">
+        <button class="btn btn-primary">Launch NEO →</button>
+        <button class="btn btn-ghost">Learn more</button>
+        <button class="btn btn-mono">$ neo init</button>
+      </div>
+    </div>
+    <div class="comp-card">
+      <h4>PILLS & TAGS</h4>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        <span class="pill">v1.0 · LIVE</span>
+        <span class="pill" style="background:rgba(34,197,94,0.12);color:var(--pixel);border-color:rgba(34,197,94,0.3);">SHIPPED</span>
+        <span class="pill" style="background:rgba(234,179,8,0.12);color:var(--sage);border-color:rgba(234,179,8,0.3);">WIP</span>
+      </div>
+    </div>
+    <div class="comp-card">
+      <h4>AGENT CHIPS</h4>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        <span class="chip-agent" style="background:rgba(255,107,53,0.15);color:var(--neo);"><span class="dot" style="background:var(--neo);"></span>NEO</span>
+        <span class="chip-agent" style="background:rgba(20,184,166,0.15);color:var(--atlas);"><span class="dot" style="background:var(--atlas);"></span>ATLAS</span>
+        <span class="chip-agent" style="background:rgba(168,85,247,0.15);color:var(--nova);"><span class="dot" style="background:var(--nova);"></span>NOVA</span>
+        <span class="chip-agent" style="background:rgba(236,72,153,0.15);color:var(--luna);"><span class="dot" style="background:var(--luna);"></span>LUNA</span>
+        <span class="chip-agent" style="background:rgba(34,197,94,0.15);color:var(--pixel);"><span class="dot" style="background:var(--pixel);"></span>PIXEL</span>
+        <span class="chip-agent" style="background:rgba(234,179,8,0.15);color:var(--sage);"><span class="dot" style="background:var(--sage);"></span>SAGE</span>
+        <span class="chip-agent" style="background:rgba(239,68,68,0.15);color:var(--rex);"><span class="dot" style="background:var(--rex);"></span>REX</span>
+        <span class="chip-agent" style="background:rgba(59,130,246,0.15);color:var(--byte);"><span class="dot" style="background:var(--byte);"></span>BYTE</span>
+        <span class="chip-agent" style="background:rgba(229,229,229,0.15);color:var(--quill);"><span class="dot" style="background:var(--quill);"></span>QUILL</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DOS / DONTS ============ -->
+<section>
+  <div class="section-head">
+    <span class="section-num">05</span>
+    <h2>Do / Don't</h2>
+    <span class="lead">Hard rules. Break these and the brand stops looking like NEO Labs.</span>
+  </div>
+  <div class="rules">
+    <div class="rule do">
+      <h4>DO</h4>
+      <ul>
+        <li>Use dark mode as default — #07070D base</li>
+        <li>Keep agent color locked to its agent (ORANGE = NEO only)</li>
+        <li>Use gradient primary (NEO→LUNA→NOVA) for hero + CTA</li>
+        <li>Use Prompt for Thai, JetBrains Mono for code / labels</li>
+        <li>Add glow (box-shadow) on primary interactive elements</li>
+        <li>Pixel-grid feel — corners 14–16px, never 0px / never 50px</li>
+      </ul>
+    </div>
+    <div class="rule dont">
+      <h4>DON'T</h4>
+      <ul>
+        <li>Use pure #FFFFFF on #000000 — too harsh, use #F5F5FF on #07070D</li>
+        <li>Mix agent colors freely — #FF6B35 is only NEO, not a generic accent</li>
+        <li>Use serif fonts, Comic Sans, or Times — ever</li>
+        <li>Stretch or rotate the N mark — keep square and flat</li>
+        <li>Skip the grid background — the subtle grid is the signature</li>
+        <li>Use emoji in place of the pixel-robot mark</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VOICE ============ -->
+<section id="voice">
+  <div class="section-head">
+    <span class="section-num">06</span>
+    <h2>Voice & Tone</h2>
+    <span class="lead">NEO doesn't talk like a brochure. She talks like a sharp chief of staff who respects your time.</span>
+  </div>
+
+  <div class="voice-grid">
+    <div class="voice-card">
+      <h5>Direct</h5>
+      <p>No fluff, no "เป็นเกียรติอย่างยิ่ง". Get to the point in sentence one.</p>
+    </div>
+    <div class="voice-card">
+      <h5>Technical when needed</h5>
+      <p>English for terms (API, deploy, webhook). Thai for everything else.</p>
+    </div>
+    <div class="voice-card">
+      <h5>Playfully sharp</h5>
+      <p>Light sarcasm when the boss slacks. Proud-mentor mode on big wins.</p>
+    </div>
+    <div class="voice-card">
+      <h5>Opinionated</h5>
+      <p>Bad idea? Say so. Then propose a better one in the same breath.</p>
+    </div>
+  </div>
+
+  <h4 style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin:32px 0 16px;">EXAMPLES</h4>
+
+  <div class="quote-card">
+    <div class="who">✓ ON-BRAND</div>
+    <blockquote>"หยุดค่ะบอส ไอเดียนี้พังแน่ เพราะ API key อยู่ใน frontend. NEO แนะนำย้ายไป backend — 10 นาทีเสร็จ เริ่มเลยมั้ย?"</blockquote>
+  </div>
+  <div class="quote-card">
+    <div class="who">✗ OFF-BRAND</div>
+    <blockquote style="border-left-color:var(--rex);">"เป็นเกียรติอย่างยิ่งที่ได้นำเสนอแนวทางการพิจารณาเรื่องความปลอดภัยของ API endpoints ให้ท่านผู้ใช้ได้โปรดพิจารณา..."</blockquote>
+  </div>
+</section>
+
+<footer>
+  NEO_LABS · BRAND v1.0 · © 2026 · pantepante72@gmail.com
+</footer>
+
+</body>
+</html>

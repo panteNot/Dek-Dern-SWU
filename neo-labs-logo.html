@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>NEO LABS — Logo System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;700&family=Prompt:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================
+   DESIGN TOKENS — locked to NEO Labs identity
+   ============================================ */
+:root {
+  --bg: #0a0a0a;
+  --bg-2: #141414;
+  --bg-3: #1c1c1c;
+  --fg: #e8e8e8;
+  --muted: #8a8a8a;
+  --border: rgba(255,255,255,0.08);
+  --card: rgba(255,255,255,0.04);
+
+  --neo: #ff6b35;        /* primary orange */
+  --neo-glow: #ff8555;   /* softer orange for gradient */
+  --neo-deep: #e04e18;   /* deeper orange for edge */
+
+  --radius: 12px;
+
+  /* pixel grid unit — sized for logo output */
+  --px-lg: 10px;   /* primary logo icon pixel */
+  --px-md: 6px;    /* inline / lockup */
+  --px-sm: 4px;    /* favicon */
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(255,107,53,0.08), transparent 60%),
+    var(--bg);
+  color: var(--fg);
+  font-family: 'Space Grotesk', 'Prompt', system-ui, sans-serif;
+  min-height: 100vh;
+  padding: 64px 24px 120px;
+  line-height: 1.5;
+}
+
+.wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+.page-head {
+  text-align: center;
+  margin-bottom: 64px;
+}
+.page-head .eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 4px;
+  color: var(--neo);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.page-head h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+.page-head p {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ============================================
+   SECTION
+   ============================================ */
+.section {
+  margin-bottom: 48px;
+}
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.section-head h2 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.section-head .tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--neo);
+  letter-spacing: 1px;
+}
+
+/* ============================================
+   LOGO CANVAS
+   ============================================ */
+.canvas {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 64px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  position: relative;
+  overflow: hidden;
+}
+.canvas::before {
+  /* subtle grid backdrop */
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+.canvas.light {
+  background: #f5f5f5;
+}
+.canvas.light::before {
+  background-image:
+    linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+}
+
+/* ============================================
+   PIXEL BOT — NEO head
+   sized via --u (unit) so we can scale per-variant
+   10 columns × 10 rows (full bot), but for LOGO we only use rows 1-7 (head)
+   ============================================ */
+.bot {
+  display: grid;
+  grid-template-columns: repeat(10, var(--u));
+  grid-template-rows: repeat(7, var(--u));
+  /* glow around the head */
+  filter: drop-shadow(0 0 calc(var(--u) * 2) rgba(255,107,53,0.55));
+}
+.bot .p {
+  width: var(--u);
+  height: var(--u);
+  background: var(--neo);
+}
+.bot .p.eye,
+.bot .p.mouth {
+  background: #ffffff;
+}
+/* highlight pixel — subtle top-left inner shine */
+.bot .p.hl {
+  background: var(--neo-glow);
+}
+.bot .p.shd {
+  background: var(--neo-deep);
+}
+
+/* ============================================
+   PRIMARY LOGO (stacked)
+   ============================================ */
+.primary-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+.primary-lockup .bot { --u: 14px; }
+.wordmark {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  letter-spacing: 8px;
+  font-size: 44px;
+  color: var(--fg);
+  text-shadow: 0 0 20px rgba(255,107,53,0.25);
+}
+.wordmark .accent {
+  color: var(--neo);
+  text-shadow: 0 0 24px rgba(255,107,53,0.6);
+}
+.tagline {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 6px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: -12px;
+}
+
+/* ============================================
+   HORIZONTAL LOCKUP
+   ============================================ */
+.h-lockup {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.h-lockup .bot { --u: 10px; }
+.h-lockup .textblock {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1;
+}
+.h-lockup .wordmark {
+  font-size: 28px;
+  letter-spacing: 5px;
+}
+.h-lockup .tagline {
+  margin-top: 6px;
+  font-size: 9px;
+  letter-spacing: 4px;
+}
+
+/* ============================================
+   ICON ONLY (favicon preview sizes)
+   ============================================ */
+.icon-row {
+  display: flex;
+  gap: 48px;
+  justify-content: center;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.icon-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.icon-cell .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+/* icon uses full 10x10 but we wrap in a rounded badge */
+.icon-badge {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 18%;
+  padding: 12%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.icon-badge .bot { --u: var(--icon-u); }
+.icon-badge.s-512 { width: 160px; height: 160px; --icon-u: 11px; }
+.icon-badge.s-256 { width: 96px;  height: 96px;  --icon-u: 7px;  }
+.icon-badge.s-128 { width: 64px;  height: 64px;  --icon-u: 4.6px;}
+.icon-badge.s-64  { width: 40px;  height: 40px;  --icon-u: 2.8px;}
+
+/* For icon-only, show a framed version (head-only crop) */
+
+/* ============================================
+   EXPORT GUIDE
+   ============================================ */
+.guide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.spec {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.spec h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--neo);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+.spec .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 13px;
+}
+.spec .row:last-child { border-bottom: none; }
+.spec .row .k { color: var(--muted); }
+.spec .row .v {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--fg);
+  font-size: 12px;
+}
+.swatch {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 8px;
+  border: 1px solid var(--border);
+}
+
+/* ============================================
+   CANVA GUIDE
+   ============================================ */
+.canva {
+  background: linear-gradient(180deg, rgba(255,107,53,0.04), transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.canva h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--neo);
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+.canva ol {
+  padding-left: 20px;
+  margin-bottom: 16px;
+}
+.canva ol li {
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--fg);
+}
+.canva ol li code {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg-3);
+  color: var(--neo);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.canva .note {
+  background: var(--bg-3);
+  border-left: 3px solid var(--neo);
+  padding: 12px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 16px;
+}
+.canva .note strong { color: var(--fg); }
+
+/* ============================================
+   LIGHT VARIANT TEST (for flex use)
+   ============================================ */
+.canvas.light .wordmark { color: #0a0a0a; text-shadow: none; }
+.canvas.light .wordmark .accent { color: var(--neo); text-shadow: none; }
+.canvas.light .tagline { color: #555; }
+.canvas.light .bot { filter: drop-shadow(0 0 8px rgba(255,107,53,0.35)); }
+
+/* footer */
+.foot {
+  text-align: center;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  margin-top: 48px;
+}
+.foot .heart { color: var(--neo); }
+</style>
+<script src="neo-theme.js?v=1"></script>
+<script src="neo-cmdk.js?v=5" defer></script>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- =========================
+       PAGE HEADER
+       ========================= -->
+  <header class="page-head">
+    <div class="eyebrow">// brand system v1.0</div>
+    <h1>NEO LABS — Logo System</h1>
+    <p>Pixel robot head + monospace wordmark · Primary / Icon / Horizontal</p>
+  </header>
+
+  <!-- =========================
+       1. PRIMARY LOGO
+       ========================= -->
+  <section class="section">
+    <div class="section-head">
+      <h2>01 · Primary Logo</h2>
+      <span class="tag">stacked / hero use</span>
+    </div>
+    <div class="canvas">
+      <div class="primary-lockup">
+        <div class="bot" id="bot-primary"></div>
+        <div class="wordmark">NEO<span class="accent">.</span>LABS</div>
+        <div class="tagline">AI · Agents · Automation</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================
+       2. HORIZONTAL LOCKUP
+       ========================= -->
+  <section class="section">
+    <div class="section-head">
+      <h2>02 · Horizontal Lockup</h2>
+      <span class="tag">header / footer / signature</span>
+    </div>
+    <div class="canvas" style="min-height: 200px;">
+      <div class="h-lockup">
+        <div class="bot" id="bot-horizontal"></div>
+        <div class="textblock">
+          <div class="wordmark">NEO<span class="accent">.</span>LABS</div>
+          <div class="tagline">AI · Agents · Automation</div>
+        </div>
+      </div>
+    </div>
+    <!-- Light variant -->
+    <div class="canvas light" style="min-height: 180px; margin-top: 12px;">
+      <div class="h-lockup">
+        <div class="bot" id="bot-horizontal-light"></div>
+        <div class="textblock">
+          <div class="wordmark">NEO<span class="accent">.</span>LABS</div>
+          <div class="tagline">AI · Agents · Automation</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================
+       3. ICON ONLY
+       ========================= -->
+  <section class="section">
+    <div class="section-head">
+      <h2>03 · Icon / App / Favicon</h2>
+      <span class="tag">512 · 256 · 128 · 64</span>
+    </div>
+    <div class="canvas">
+      <div class="icon-row">
+        <div class="icon-cell">
+          <div class="icon-badge s-512"><div class="bot" data-bot="i1"></div></div>
+          <div class="label">512 px</div>
+        </div>
+        <div class="icon-cell">
+          <div class="icon-badge s-256"><div class="bot" data-bot="i2"></div></div>
+          <div class="label">256 px</div>
+        </div>
+        <div class="icon-cell">
+          <div class="icon-badge s-128"><div class="bot" data-bot="i3"></div></div>
+          <div class="label">128 px</div>
+        </div>
+        <div class="icon-cell">
+          <div class="icon-badge s-64"><div class="bot" data-bot="i4"></div></div>
+          <div class="label">64 px</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================
+       4. EXPORT SPECS
+       ========================= -->
+  <section class="section">
+    <div class="section-head">
+      <h2>04 · Export Guide</h2>
+      <span class="tag">hex · fonts · rules</span>
+    </div>
+    <div class="guide">
+
+      <div class="spec">
+        <h3>Colors</h3>
+        <div class="row">
+          <span class="k"><span class="swatch" style="background:#ff6b35"></span>NEO Orange</span>
+          <span class="v">#FF6B35</span>
+        </div>
+        <div class="row">
+          <span class="k"><span class="swatch" style="background:#ff8555"></span>Glow Tint</span>
+          <span class="v">#FF8555</span>
+        </div>
+        <div class="row">
+          <span class="k"><span class="swatch" style="background:#e04e18"></span>Deep Edge</span>
+          <span class="v">#E04E18</span>
+        </div>
+        <div class="row">
+          <span class="k"><span class="swatch" style="background:#0a0a0a"></span>BG Dark</span>
+          <span class="v">#0A0A0A</span>
+        </div>
+        <div class="row">
+          <span class="k"><span class="swatch" style="background:#ffffff"></span>Eye / Mouth</span>
+          <span class="v">#FFFFFF</span>
+        </div>
+      </div>
+
+      <div class="spec">
+        <h3>Typography</h3>
+        <div class="row">
+          <span class="k">Wordmark</span>
+          <span class="v">JetBrains Mono 800</span>
+        </div>
+        <div class="row">
+          <span class="k">Tagline</span>
+          <span class="v">JetBrains Mono 500</span>
+        </div>
+        <div class="row">
+          <span class="k">Letter spacing</span>
+          <span class="v">8px wordmark</span>
+        </div>
+        <div class="row">
+          <span class="k">Fallback</span>
+          <span class="v">Menlo / Courier</span>
+        </div>
+      </div>
+
+      <div class="spec">
+        <h3>Grid</h3>
+        <div class="row">
+          <span class="k">Pixel grid</span>
+          <span class="v">10 × 10</span>
+        </div>
+        <div class="row">
+          <span class="k">Head crop</span>
+          <span class="v">rows 1–7</span>
+        </div>
+        <div class="row">
+          <span class="k">Eyes</span>
+          <span class="v">^^ tilted (NEO)</span>
+        </div>
+        <div class="row">
+          <span class="k">Mouth</span>
+          <span class="v">row 7, c4–c7</span>
+        </div>
+      </div>
+
+      <div class="spec">
+        <h3>Clear Space</h3>
+        <div class="row">
+          <span class="k">Min padding</span>
+          <span class="v">= 1 ear width</span>
+        </div>
+        <div class="row">
+          <span class="k">Min icon size</span>
+          <span class="v">32 px</span>
+        </div>
+        <div class="row">
+          <span class="k">Glow</span>
+          <span class="v">12px @ 55% #FF6B35</span>
+        </div>
+        <div class="row">
+          <span class="k">Radius (badge)</span>
+          <span class="v">18%</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================
+       5. CANVA RECREATION GUIDE
+       ========================= -->
+  <section class="section">
+    <div class="section-head">
+      <h2>05 · Canva Recreation Guide</h2>
+      <span class="tag">step-by-step</span>
+    </div>
+    <div class="canva">
+      <h3>// Build NEO LABS logo in Canva</h3>
+      <ol>
+        <li>
+          <strong>Canvas:</strong> Create a <code>1024 × 1024 px</code> design. Background fill <code>#0A0A0A</code>.
+        </li>
+        <li>
+          <strong>Pixel head (icon):</strong> Use the <code>Elements → Shapes → Square</code> tool. Make each pixel a <code>60 × 60 px</code> square (for a 10×10 grid = 600×600 overall). Place them on a 10-column grid. Fill color <code>#FF6B35</code>.
+          <br>Grid positions for NEO head (rows 1–7 only):
+          <br><code>r1: c1-c2, c9-c10</code> (ears)
+          <br><code>r2-r3: c1 → c10</code> (head top, full width)
+          <br><code>r4-r7: c1 + c10</code> (side walls)
+        </li>
+        <li>
+          <strong>Face (white squares):</strong> Fill <code>#FFFFFF</code>.
+          <br>Eyes (tilted ^^): <code>r4-c3, r5-c2, r5-c3</code> (left) · <code>r4-c8, r5-c8, r5-c9</code> (right)
+          <br>Mouth (smile): <code>r7: c4, c5, c6, c7</code>
+        </li>
+        <li>
+          <strong>Glow:</strong> Group all pixels (<code>Ctrl/Cmd + G</code>). Apply <code>Effects → Glow</code> with color <code>#FF6B35</code>, intensity <code>50</code>, size <code>30</code>.
+        </li>
+        <li>
+          <strong>Wordmark:</strong> Add text <code>NEO.LABS</code>. Font: <strong>JetBrains Mono Bold</strong> (Canva search: "JetBrains Mono" — free). Size <code>120pt</code>, letter spacing <code>+200</code>, color <code>#E8E8E8</code>. Color the <code>.</code> dot only as <code>#FF6B35</code>.
+        </li>
+        <li>
+          <strong>Tagline:</strong> Text <code>AI · AGENTS · AUTOMATION</code>. Font: <strong>JetBrains Mono Medium</strong>, size <code>24pt</code>, letter spacing <code>+400</code>, color <code>#8A8A8A</code>, uppercase.
+        </li>
+        <li>
+          <strong>Stacked (Primary):</strong> Align head + wordmark + tagline vertically with <code>48 px</code> gaps.
+        </li>
+        <li>
+          <strong>Horizontal lockup:</strong> Place head on left, stack wordmark + tagline on right. Gap between head and text: equal to <code>head height ÷ 3</code>.
+        </li>
+        <li>
+          <strong>Icon / Favicon:</strong> Duplicate head only. Wrap in a rounded square <code>radius 18%</code> with fill <code>#1C1C1C</code> and stroke <code>1px rgba(255,255,255,0.08)</code>. Export as PNG at 512 / 256 / 128 / 64.
+        </li>
+        <li>
+          <strong>Export:</strong> <code>Share → Download → PNG</code> (transparent background for icon, solid <code>#0A0A0A</code> for hero logo). For vector: upgrade to Canva Pro and export SVG, or redraw in Figma with the same specs.
+        </li>
+      </ol>
+
+      <div class="note">
+        <strong>Tip from LUNA:</strong> Canva's pixel-grid snapping is imperfect. Use the <em>Position</em> panel (Align → Advanced) to type exact X/Y coordinates for each pixel block — multiples of 60. Or faster: build in Figma with a 10×10 frame + Auto Layout, then export PNG and import into Canva as a finished asset.
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span class="heart">♡</span> NEO LABS · designed by LUNA · v1.0
+  </div>
+
+</div>
+
+<script>
+/* ============================================
+   NEO PIXEL HEAD BUILDER
+   — mirrors the geometry from neo-labs-team.html
+   — only renders rows 1–7 (head only, no body/feet)
+   ============================================ */
+
+// Body pixels for HEAD ONLY (rows 1–7)
+const HEAD_BODY = [
+  // ears (r1)
+  {r:1,c:1},{r:1,c:2}, {r:1,c:9},{r:1,c:10},
+  // head top (r2)
+  {r:2,c:1},{r:2,c:2},{r:2,c:3},{r:2,c:4},{r:2,c:5},{r:2,c:6},{r:2,c:7},{r:2,c:8},{r:2,c:9},{r:2,c:10},
+  // (r3)
+  {r:3,c:1},{r:3,c:2},{r:3,c:3},{r:3,c:4},{r:3,c:5},{r:3,c:6},{r:3,c:7},{r:3,c:8},{r:3,c:9},{r:3,c:10},
+  // face sides only (r4-r7)
+  {r:4,c:1},{r:4,c:10},
+  {r:5,c:1},{r:5,c:10},
+  {r:6,c:1},{r:6,c:10},
+  {r:7,c:1},{r:7,c:2},{r:7,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7},{r:7,c:8},{r:7,c:9},{r:7,c:10},
+];
+
+/* Fill all face cells (r4-r7, c2-c9) except where overridden by eye/mouth */
+const FACE_CELLS = [];
+for (let r = 4; r <= 6; r++) {
+  for (let c = 2; c <= 9; c++) {
+    FACE_CELLS.push({r, c});
+  }
+}
+
+/* NEO face — confident ^^ eyes + straight mouth on row 7 (edge) */
+const NEO_FACE = {
+  eye: [
+    {r:4,c:3},{r:5,c:2},{r:5,c:3},     // left ^^
+    {r:4,c:8},{r:5,c:8},{r:5,c:9},     // right ^^
+  ],
+  // mouth is part of row 7 which is already body — override to white
+  mouth: [
+    {r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7},
+  ],
+};
+
+/* build a head into a container */
+function buildHead(container) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  const key = (r,c) => r+'-'+c;
+  const eyeSet = new Set(NEO_FACE.eye.map(p => key(p.r,p.c)));
+  const mouthSet = new Set(NEO_FACE.mouth.map(p => key(p.r,p.c)));
+
+  /* 1. body pixels (skip mouth cells so we can override them) */
+  HEAD_BODY.forEach(px => {
+    if (mouthSet.has(key(px.r, px.c))) return; // will be added as mouth
+    const el = document.createElement('div');
+    el.className = 'p';
+    el.style.gridRow = px.r;
+    el.style.gridColumn = px.c;
+    container.appendChild(el);
+  });
+
+  /* 2. face fill — fill empty face cells (r4-r6, c2-c9) with body color, skip eyes */
+  FACE_CELLS.forEach(px => {
+    if (eyeSet.has(key(px.r, px.c))) return;
+    const el = document.createElement('div');
+    el.className = 'p';
+    el.style.gridRow = px.r;
+    el.style.gridColumn = px.c;
+    container.appendChild(el);
+  });
+
+  /* 3. eyes (white) */
+  NEO_FACE.eye.forEach(px => {
+    const el = document.createElement('div');
+    el.className = 'p eye';
+    el.style.gridRow = px.r;
+    el.style.gridColumn = px.c;
+    container.appendChild(el);
+  });
+
+  /* 4. mouth (white) — overrides row 7 body cells */
+  NEO_FACE.mouth.forEach(px => {
+    const el = document.createElement('div');
+    el.className = 'p mouth';
+    el.style.gridRow = px.r;
+    el.style.gridColumn = px.c;
+    container.appendChild(el);
+  });
+}
+
+/* mount all bots */
+document.querySelectorAll('.bot').forEach(buildHead);
+</script>
+
+</body>
+</html>

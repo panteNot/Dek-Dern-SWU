@@ -1,0 +1,32 @@
+# Python
+**/__pycache__/
+*.pyc
+.pytest_cache/
+api/venv/
+
+# Secrets — NEVER commit
+.env
+api/.env
+api/.env.local
+
+# Local data (regenerated)
+api/conversations.db
+api/activity.json
+workspace/
+
+# OS
+.DS_Store
+
+# Large binary (not needed in deploy)
+*.pdf
+_pdf_pages/
+
+# Off-topic / stray
+Crack
+1st
+DekDern
+NEO_XYJ_CiC.pine
+index.html
+
+# Old SE class assets (separate project)
+neo-labs-se-*

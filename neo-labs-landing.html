@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEO LABS — AI × Agents × Automation</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;900&family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   NEO LABS — Landing Page
+   Theme: Tech Innovation (electric blue + neon cyan + deep dark)
+   Adapted from theme-factory/tech-innovation + NEO Labs brand
+   ============================================================ */
+:root {
+  /* Tech Innovation palette → remapped to NEO Labs accents */
+  --bg-deep: #07070d;
+  --bg-1:    #0d0d17;
+  --bg-2:    #141421;
+  --bg-3:    #1c1c2e;
+  --line:    rgba(255,255,255,0.07);
+  --line-2:  rgba(255,255,255,0.15);
+  --fg:      #f5f5ff;
+  --muted:   #8888a0;
+  --dim:     #4a4a5a;
+
+  /* NEO Labs brand */
+  --neo:   #ff6b35;
+  --atlas: #14b8a6;
+  --nova:  #a855f7;
+  --luna:  #ec4899;
+  --pixel: #22c55e;
+  --sage:  #eab308;
+  --rex:   #ef4444;
+  --byte:  #3b82f6;
+  --quill: #e5e5e5;
+
+  --grad-primary: linear-gradient(135deg, var(--neo), var(--luna), var(--nova));
+  --grad-secondary: linear-gradient(135deg, var(--byte), var(--atlas));
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg-deep);
+  color: var(--fg);
+  font-family: 'Prompt', system-ui, sans-serif;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ============================================================
+   CANVAS BACKGROUND — animated grid
+   ============================================================ */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -2;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(255,107,53,0.15), transparent 40%),
+    radial-gradient(ellipse at 80% 50%, rgba(168,85,247,0.12), transparent 40%),
+    radial-gradient(ellipse at 50% 90%, rgba(59,130,246,0.1), transparent 40%),
+    var(--bg-deep);
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse at center, rgba(0,0,0,1) 30%, transparent 70%);
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 18px 40px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: linear-gradient(180deg, rgba(7,7,13,0.9), rgba(7,7,13,0.6));
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+
+.nav-logo {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 900; font-size: 14px; letter-spacing: 4px;
+  background: var(--grad-primary);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.nav-logo::before { content: '◆ '; color: var(--neo); -webkit-text-fill-color: var(--neo); }
+
+.nav-links { display: flex; gap: 32px; align-items: center; }
+.nav-links a {
+  color: var(--muted); text-decoration: none;
+  font-size: 13px; font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 1.5px; font-weight: 600;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--fg); }
+.nav-cta {
+  background: var(--grad-primary);
+  color: #fff; padding: 10px 20px; border-radius: 8px;
+  font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; letter-spacing: 2px;
+  border: 0; cursor: pointer;
+  box-shadow: 0 8px 30px rgba(255,107,53,0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.nav-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(255,107,53,0.5); }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 120px 40px 60px; text-align: center; position: relative;
+}
+
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 14px; border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: rgba(255,255,255,0.03);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 2.5px; color: var(--neo);
+  font-weight: 700; margin-bottom: 32px;
+}
+.hero-tag::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--pixel); box-shadow: 0 0 10px var(--pixel);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1);} 50% { opacity: 0.5; transform: scale(1.3);} }
+
+h1 {
+  font-size: clamp(42px, 7vw, 90px); line-height: 1.05;
+  font-weight: 800; letter-spacing: -2px;
+  margin-bottom: 24px;
+  background: linear-gradient(180deg, #fff 30%, rgba(255,255,255,0.4));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+h1 .accent {
+  background: var(--grad-primary);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+.hero-sub {
+  font-size: clamp(16px, 2vw, 20px);
+  color: var(--muted); max-width: 680px; margin: 0 auto 40px;
+}
+
+.hero-cta {
+  display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+}
+.btn {
+  padding: 14px 26px; border-radius: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700; font-size: 13px; letter-spacing: 2px;
+  border: 0; cursor: pointer; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: all 0.2s;
+}
+.btn-primary {
+  background: var(--grad-primary); color: #fff;
+  box-shadow: 0 10px 40px rgba(255,107,53,0.3);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 50px rgba(255,107,53,0.5); }
+.btn-ghost {
+  background: transparent; color: var(--fg);
+  border: 1px solid var(--line-2);
+}
+.btn-ghost:hover { border-color: var(--neo); color: var(--neo); }
+
+.hero-bots {
+  margin-top: 80px;
+  display: flex; justify-content: center; gap: 24px; flex-wrap: wrap;
+}
+
+/* ============================================================
+   PIXEL BOT — same 10x10 grid as main app
+   ============================================================ */
+.bot {
+  --u: 4px;
+  display: grid;
+  grid-template-columns: repeat(10, var(--u));
+  grid-template-rows: repeat(10, var(--u));
+  gap: 1px; width: calc(10 * var(--u) + 9px); height: calc(10 * var(--u) + 9px);
+  filter: drop-shadow(0 0 16px currentColor);
+  animation: float 3s ease-in-out infinite;
+}
+.bot.big { --u: 8px; }
+.bot .px { background: currentColor; }
+.bot .eye { background: #fff; }
+.bot .mouth { background: rgba(255,255,255,0.6); }
+
+@keyframes float { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-8px);} }
+
+/* ============================================================
+   SECTIONS
+   ============================================================ */
+section {
+  padding: 100px 40px; max-width: 1200px; margin: 0 auto;
+  position: relative;
+}
+.section-tag {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 3px; color: var(--neo);
+  font-weight: 700; margin-bottom: 16px;
+}
+h2 {
+  font-size: clamp(32px, 4.5vw, 52px); font-weight: 800;
+  letter-spacing: -1px; margin-bottom: 20px;
+  max-width: 800px;
+}
+.section-sub {
+  font-size: 17px; color: var(--muted); max-width: 660px;
+  margin-bottom: 56px;
+}
+
+/* ============================================================
+   FEATURES GRID
+   ============================================================ */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+.feature {
+  padding: 28px 24px; border-radius: 16px;
+  background: linear-gradient(145deg, var(--bg-2), var(--bg-1));
+  border: 1px solid var(--line);
+  transition: border-color 0.3s, transform 0.3s;
+  position: relative; overflow: hidden;
+}
+.feature::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at top left, var(--_c, var(--neo)) 0%, transparent 40%);
+  opacity: 0.08; transition: opacity 0.3s;
+}
+.feature:hover { transform: translateY(-4px); border-color: var(--_c, var(--neo)); }
+.feature:hover::before { opacity: 0.15; }
+.feature-icon {
+  font-size: 24px; margin-bottom: 16px;
+  width: 48px; height: 48px; border-radius: 12px;
+  background: rgba(255,255,255,0.05); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--_c, var(--neo));
+}
+.feature h3 {
+  font-size: 18px; font-weight: 700; margin-bottom: 10px;
+  color: var(--fg);
+}
+.feature p { color: var(--muted); font-size: 14px; line-height: 1.65; }
+
+/* ============================================================
+   TEAM — 9 AGENTS
+   ============================================================ */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px; margin-top: 40px;
+}
+.agent-card {
+  padding: 24px 18px; border-radius: 14px;
+  background: var(--bg-2); border: 1px solid var(--line);
+  text-align: center; transition: all 0.3s;
+  cursor: default;
+}
+.agent-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--_c);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 30px var(--_c);
+}
+.agent-card .bot {
+  margin: 0 auto 14px;
+  color: var(--_c);
+}
+.agent-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px; font-weight: 800; letter-spacing: 2px;
+  color: var(--_c); margin-bottom: 4px;
+}
+.agent-role {
+  font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.5px;
+}
+
+/* ============================================================
+   STATS
+   ============================================================ */
+.stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+  margin-top: 40px;
+}
+.stat {
+  padding: 30px 24px; border-radius: 14px;
+  background: linear-gradient(145deg, var(--bg-2), var(--bg-1));
+  border: 1px solid var(--line);
+  position: relative; overflow: hidden;
+}
+.stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 42px; font-weight: 800; letter-spacing: -1px;
+  background: var(--grad-primary);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  margin-bottom: 6px;
+}
+.stat-label {
+  font-size: 12px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 2px;
+}
+
+/* ============================================================
+   CTA SECTION
+   ============================================================ */
+.cta-section {
+  text-align: center;
+  padding: 100px 40px;
+  max-width: 760px; margin: 0 auto;
+}
+.cta-section h2 {
+  margin: 0 auto 20px;
+  background: linear-gradient(180deg, #fff, rgba(255,255,255,0.5));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  padding: 40px; border-top: 1px solid var(--line);
+  text-align: center; color: var(--dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 2px;
+}
+
+@media (max-width: 768px) {
+  nav { padding: 14px 20px; }
+  .nav-links { display: none; }
+  section { padding: 60px 20px; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+<script src="neo-theme.js?v=1"></script>
+<script src="neo-cmdk.js?v=5" defer></script>
+</head>
+<body>
+
+<!-- ========== NAV ========== -->
+<nav>
+  <div class="nav-logo">NEO LABS</div>
+  <div class="nav-links">
+    <a href="#team">TEAM</a>
+    <a href="#features">FEATURES</a>
+    <a href="#stats">STATS</a>
+    <button class="nav-cta" onclick="alert('เปิด NEO Labs Office!')">LAUNCH</button>
+  </div>
+</nav>
+
+<!-- ========== HERO ========== -->
+<section class="hero">
+  <div>
+    <div class="hero-tag">◆ 9 SPECIALIST AGENTS · ONE MISSION</div>
+    <h1>The <span class="accent">Autonomous</span><br>AI Workspace<br>ของคุณภันเต</h1>
+    <p class="hero-sub">
+      NEO Labs รวม 9 AI specialist agents ทำงานพร้อมกัน — วิจัย, ออกแบบ, วิเคราะห์, เขียนโค้ด, review — ผ่าน interface เดียวที่คุณบังคับได้หมด
+    </p>
+    <div class="hero-cta">
+      <a href="#team" class="btn btn-primary">◆ START EXPLORING</a>
+      <a href="#features" class="btn btn-ghost">&lt;/&gt; SEE WHAT IT DOES</a>
+    </div>
+
+    <div class="hero-bots" id="heroBots"></div>
+  </div>
+</section>
+
+<!-- ========== FEATURES ========== -->
+<section id="features">
+  <div class="section-tag">◆ CAPABILITIES</div>
+  <h2>ทำงานเหมือนมีทีมครบ 9 คน<br>โดยคนเดียว</h2>
+  <p class="section-sub">เครื่องมือครบในที่เดียว — เขียนโค้ด, ออกแบบ, วิจัย, สร้าง 3D scene, วาด whiteboard, จัดการไฟล์ — ทั้งหมดสั่งด้วยคำพูด</p>
+
+  <div class="features">
+    <div class="feature" style="--_c: var(--neo);">
+      <div class="feature-icon">◆</div>
+      <h3>Multi-Agent Orchestra</h3>
+      <p>9 specialist agents ประสานงานอัตโนมัติ — delegate ทันทีที่คุณพิมพ์ NEO รู้ว่าใครถนัดเรื่องอะไร</p>
+    </div>
+    <div class="feature" style="--_c: var(--byte);">
+      <div class="feature-icon">&lt;/&gt;</div>
+      <h3>Code Editor + Runner</h3>
+      <p>Monaco Editor ในเว็บ เขียน JS/HTML/CSS/Python แล้วรันใน sandbox ทันที — AI review ก่อน commit ได้</p>
+    </div>
+    <div class="feature" style="--_c: var(--nova);">
+      <div class="feature-icon">🌐</div>
+      <h3>3D Scene Generator</h3>
+      <p>อธิบายด้วยข้อความ → NEO สร้าง Three.js scene → render จริงใน viewport ทันที</p>
+    </div>
+    <div class="feature" style="--_c: var(--luna);">
+      <div class="feature-icon">🎨</div>
+      <h3>Canvas + Figma Direct</h3>
+      <p>วาด whiteboard ในเว็บ หรือส่ง design เข้า Figma โดยตรงผ่าน MCP — ไม่ต้อง copy-paste</p>
+    </div>
+    <div class="feature" style="--_c: var(--pixel);">
+      <div class="feature-icon">📁</div>
+      <h3>Smart Workspace</h3>
+      <p>File Manager browse/edit/save ไฟล์ทั้ง project — sandbox ใน workspace/ ปลอดภัยจาก agent</p>
+    </div>
+    <div class="feature" style="--_c: var(--atlas);">
+      <div class="feature-icon">◉</div>
+      <h3>Real-Time Dashboard</h3>
+      <p>เห็น agent แต่ละคนกำลังทำอะไร real-time — halo แสดง status + click เพื่อดู task history</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== TEAM ========== -->
+<section id="team">
+  <div class="section-tag">◆ THE TEAM</div>
+  <h2>9 Agents.<br>One Command.</h2>
+  <p class="section-sub">แต่ละคนมี expertise + personality + face ของตัวเอง — พิมพ์คุยโดยตรงได้เลย</p>
+
+  <div class="team-grid" id="teamGrid"></div>
+</section>
+
+<!-- ========== STATS ========== -->
+<section id="stats">
+  <div class="section-tag">◆ BY THE NUMBERS</div>
+  <h2>Not just talk.<br>Measurable impact.</h2>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">9</div>
+      <div class="stat-label">Specialists</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">6</div>
+      <div class="stat-label">Modules</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">&lt;2s</div>
+      <div class="stat-label">Response</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">24/7</div>
+      <div class="stat-label">Available</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== CTA ========== -->
+<section class="cta-section">
+  <h2>พร้อมให้ทีม NEO Labs<br>ทำงานแทนคุณหรือยัง?</h2>
+  <p class="section-sub" style="margin: 0 auto 32px;">เปิดครั้งเดียว — ใช้งานได้ทันที — ไม่ต้องตั้งค่าอะไร</p>
+  <a href="#" class="btn btn-primary">◆ LAUNCH NEO LABS</a>
+</section>
+
+<footer>
+  © 2026 NEO LABS · BUILT WITH ◆ BY ภันเต
+</footer>
+
+<script>
+/* ========== DATA: 9 agents (same as main app) ========== */
+const CHARS = [
+  { id:'neo',   name:'NEO',   color:'#ff6b35', role:'CEO' },
+  { id:'atlas', name:'ATLAS', color:'#14b8a6', role:'Chief of Staff' },
+  { id:'nova',  name:'NOVA',  color:'#a855f7', role:'Research' },
+  { id:'luna',  name:'LUNA',  color:'#ec4899', role:'UX/UI Designer' },
+  { id:'pixel', name:'PIXEL', color:'#22c55e', role:'Slide Maker' },
+  { id:'sage',  name:'SAGE',  color:'#eab308', role:'Study Tutor' },
+  { id:'rex',   name:'REX',   color:'#ef4444', role:"Devil's Advocate" },
+  { id:'byte',  name:'BYTE',  color:'#3b82f6', role:'Code Reviewer' },
+  { id:'quill', name:'QUILL', color:'#e5e5e5', role:'Copywriter' },
+];
+
+const BODY = [
+  {r:1,c:1},{r:1,c:2}, {r:1,c:9},{r:1,c:10},
+  {r:2,c:1},{r:2,c:2},{r:2,c:3},{r:2,c:4},{r:2,c:5},{r:2,c:6},{r:2,c:7},{r:2,c:8},{r:2,c:9},{r:2,c:10},
+  {r:3,c:1},{r:3,c:2},{r:3,c:3},{r:3,c:4},{r:3,c:5},{r:3,c:6},{r:3,c:7},{r:3,c:8},{r:3,c:9},{r:3,c:10},
+  {r:4,c:1},{r:4,c:10}, {r:5,c:1},{r:5,c:10}, {r:6,c:1},{r:6,c:10}, {r:7,c:1},{r:7,c:10},
+  {r:8,c:1},{r:8,c:2},{r:8,c:3},{r:8,c:4},{r:8,c:5},{r:8,c:6},{r:8,c:7},{r:8,c:8},{r:8,c:9},{r:8,c:10},
+  {r:9,c:1},{r:9,c:2},{r:9,c:3},{r:9,c:4},{r:9,c:5},{r:9,c:6},{r:9,c:7},{r:9,c:8},{r:9,c:9},{r:9,c:10},
+  {r:10,c:1},{r:10,c:2}, {r:10,c:4},{r:10,c:5},{r:10,c:6},{r:10,c:7}, {r:10,c:9},{r:10,c:10},
+];
+const FACES = {
+  neo:   { eye:[[4,3],[5,2],[5,3],[4,8],[5,8],[5,9]], mouth:[[7,4],[7,5],[7,6],[7,7]] },
+  atlas: { eye:[[5,3],[5,8]], mouth:[[7,4],[7,5],[7,6],[7,7]] },
+  nova:  { eye:[[4,2],[4,3],[5,2],[5,3],[4,8],[4,9],[5,8],[5,9]], mouth:[[6,5],[6,6],[7,5],[7,6]] },
+  luna:  { eye:[[4,3],[5,3],[4,8],[5,8]], mouth:[[6,3],[7,4],[7,5],[7,6],[7,7],[6,8]] },
+  pixel: { eye:[[4,2],[4,3],[4,8],[4,9]], mouth:[[6,3],[7,4],[7,5],[7,6],[7,7],[6,8]] },
+  sage:  { eye:[[4,3],[5,3],[4,8],[5,8]], mouth:[[7,5],[7,6]] },
+  rex:   { eye:[[4,2],[5,3],[5,8],[4,9]], mouth:[[7,3],[6,4],[7,5],[6,6],[7,7],[6,8]] },
+  byte:  { eye:[[4,2],[4,3],[5,2],[5,3],[4,8],[4,9],[5,8],[5,9]], mouth:[[7,3],[7,5],[7,7]] },
+  quill: { eye:[[4,3],[5,3],[5,7],[5,8],[5,9]], mouth:[[7,4],[7,5],[7,6],[6,7]] },
+};
+
+function makeBot(id, big) {
+  const bot = document.createElement('div');
+  bot.className = 'bot ' + (big ? 'big' : '');
+  bot.style.color = CHARS.find(c => c.id === id).color;
+  const face = FACES[id];
+  const eyeSet = new Set(face.eye.map(p => p.join(',')));
+  const mouthSet = new Set(face.mouth.map(p => p.join(',')));
+  BODY.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'px';
+    el.style.gridRow = p.r; el.style.gridColumn = p.c;
+    bot.appendChild(el);
+  });
+  for (let r = 4; r <= 7; r++) for (let c = 2; c <= 9; c++) {
+    const k = `${r},${c}`;
+    const el = document.createElement('div');
+    el.className = 'px' + (eyeSet.has(k) ? ' eye' : mouthSet.has(k) ? ' mouth' : '');
+    el.style.gridRow = r; el.style.gridColumn = c;
+    bot.appendChild(el);
+  }
+  return bot;
+}
+
+/* Render hero bots (3 featured) */
+const heroBots = document.getElementById('heroBots');
+['neo','nova','luna'].forEach(id => heroBots.appendChild(makeBot(id, true)));
+
+/* Render team grid (all 9) */
+const team = document.getElementById('teamGrid');
+CHARS.forEach(c => {
+  const card = document.createElement('div');
+  card.className = 'agent-card';
+  card.style.setProperty('--_c', c.color);
+  card.appendChild(makeBot(c.id, false));
+  const name = document.createElement('div'); name.className = 'agent-name'; name.textContent = c.name;
+  const role = document.createElement('div'); role.className = 'agent-role'; role.textContent = c.role;
+  card.appendChild(name); card.appendChild(role);
+  team.appendChild(card);
+});
+
+/* Smooth scroll */
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth' }); }
+  });
+});
+</script>
+</body>
+</html>

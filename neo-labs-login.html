@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEO LABS — Login</title>
+<!-- Google Identity Services (real OAuth) -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  /* ============================================
+     DESIGN TOKENS — match neo-labs-team.html
+     ============================================ */
+  :root {
+    --bg-deep: #06060a;
+    --bg: #0a0a0f;
+    --bg-1: #141420;
+    --bg-2: #1c1c2a;
+    --fg: #e8e8e8;
+    --muted: #8a8a98;
+    --border: rgba(255,255,255,0.08);
+    --card: rgba(255,255,255,0.03);
+    --px: 5px;
+
+    /* NEO Labs character palette */
+    --neo: #ff6b35;      /* orange — main accent */
+    --atlas: #14b8a6;
+    --nova: #a855f7;     /* purple */
+    --luna: #ec4899;     /* pink */
+    --pixel: #22c55e;
+    --sage: #eab308;     /* yellow */
+    --rex: #ef4444;
+    --byte: #3b82f6;     /* blue */
+    --quill: #e5e5e5;
+
+    /* form */
+    --field-bg: rgba(255,255,255,0.04);
+    --field-border: rgba(255,255,255,0.1);
+    --danger: #ef4444;
+    --success: #22c55e;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(255,107,53,0.08), transparent),
+      radial-gradient(900px 500px at 110% 50%, rgba(168,85,247,0.07), transparent),
+      var(--bg-deep);
+    color: var(--fg);
+    font-family: 'Inter', 'Noto Sans Thai', system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  /* ============================================
+     PAGE LAYOUT — 2 columns 50/50
+     ============================================ */
+  .shell {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  @media (max-width: 860px) {
+    .shell { grid-template-columns: 1fr; grid-template-rows: 42vh 58vh; }
+  }
+
+  /* ============================================
+     LEFT — Characters on pedestal
+     ============================================ */
+  .stage-side {
+    position: relative;
+    background:
+      radial-gradient(ellipse at center, rgba(255,107,53,0.12), transparent 60%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg-1) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  @media (max-width: 860px) {
+    .stage-side { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+
+  /* decorative brand badge top-left */
+  .brand {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: var(--muted);
+  }
+  .brand .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--neo);
+    box-shadow: 0 0 12px var(--neo);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+  }
+
+  /* pedestal holding all characters */
+  .pedestal {
+    position: relative;
+    width: min(680px, 96%);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 10px;
+    padding-bottom: 36px;
+    flex-wrap: wrap;
+  }
+  .pedestal::after {
+    /* the plinth */
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: -6%;
+    width: 112%;
+    height: 28px;
+    background: linear-gradient(180deg, var(--bg-2), #0a0a14);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow:
+      0 20px 40px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.04);
+    z-index: 0;
+  }
+  .pedestal::before {
+    /* ambient floor glow */
+    content: '';
+    position: absolute;
+    bottom: -12px;
+    left: 10%;
+    right: 10%;
+    height: 40px;
+    background: radial-gradient(ellipse, rgba(255,107,53,0.25), transparent 70%);
+    filter: blur(12px);
+    z-index: 0;
+  }
+
+  .slot {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transform: translateY(0);
+    transition: transform 0.25s ease;
+  }
+  .slot .label {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.25s, transform 0.25s;
+  }
+  .slot:hover .label { opacity: 1; transform: translateY(0); }
+
+  /* staggered heights so lineup feels organic */
+  .slot[data-id="nova"]  { margin-bottom: 14px; }
+  .slot[data-id="atlas"] { margin-bottom: 6px; }
+  .slot[data-id="neo"]   { margin-bottom: 0; }
+  .slot[data-id="luna"]  { margin-bottom: 20px; }
+  .slot[data-id="pixel"] { margin-bottom: 10px; }
+  .slot[data-id="sage"]  { margin-bottom: 18px; }
+  .slot[data-id="rex"]   { margin-bottom: 4px; }
+  .slot[data-id="byte"]  { margin-bottom: 8px; }
+  .slot[data-id="quill"] { margin-bottom: 16px; }
+
+  /* ============================================
+     PIXEL ROBOT — reused system from team page
+     ============================================ */
+  .bot {
+    display: grid;
+    grid-template-columns: repeat(10, var(--px));
+    grid-template-rows: repeat(10, var(--px));
+    gap: 0;
+    animation: idle 2.4s ease-in-out infinite;
+    filter: drop-shadow(0 0 14px currentColor);
+    transition: filter 0.3s;
+  }
+  .bot .p {
+    width: var(--px);
+    height: var(--px);
+    background: currentColor;
+  }
+  .bot .eye {
+    position: relative;
+    background: #fff;
+    overflow: hidden;
+  }
+  /* pupil inside eye — moves via CSS var from JS */
+  .bot .eye::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: #111;
+    transform: translate(var(--px-x, 0), var(--px-y, 0));
+    transition: transform 0.12s ease-out;
+    /* pupil = inner square smaller than eye */
+    clip-path: inset(22% 22% 22% 22%);
+  }
+  .bot .mouth { background: #fff; }
+
+  /* COVERED state — "hands over eyes" when typing password.
+     We draw a horizontal band across eye row. */
+  .bot.covered .eye { background: currentColor; }
+  .bot.covered .eye::after { display: none; }
+  .bot.covered .cover {
+    grid-row: 4 / span 2;
+    grid-column: 2 / span 8;
+    background: currentColor;
+    border-top: 2px solid rgba(0,0,0,0.25);
+    border-bottom: 2px solid rgba(0,0,0,0.25);
+    z-index: 2;
+  }
+
+  /* SAD state — shift mouth into frown by JS class + head down */
+  .slot.sad { transform: translateY(6px); }
+  .slot.sad .bot { animation: shake 0.4s ease-in-out; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0) translateY(0); }
+    20%      { transform: translateX(-3px) translateY(2px); }
+    40%      { transform: translateX(3px) translateY(2px); }
+    60%      { transform: translateX(-2px) translateY(2px); }
+    80%      { transform: translateX(2px) translateY(2px); }
+  }
+
+  /* HAPPY state — jump + eyes become ^^ by swapping .eye classes */
+  .slot.happy .bot { animation: jump 0.7s ease-out; }
+  @keyframes jump {
+    0%   { transform: translateY(0) scale(1,1); }
+    30%  { transform: translateY(-36px) scale(1.08, 0.92); }
+    60%  { transform: translateY(0) scale(0.94, 1.06); }
+    100% { transform: translateY(0) scale(1,1); }
+  }
+
+  /* ANTICIPATE — slight lean forward when hovering Login */
+  .slot.anticipate .bot { animation-duration: 1s; filter: drop-shadow(0 0 20px currentColor) brightness(1.15); }
+
+  /* EXCITED typing — speed up bob + brightness */
+  .slot.excited .bot { animation-duration: 1.2s; filter: drop-shadow(0 0 18px currentColor) brightness(1.1); }
+
+  @keyframes idle {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-4px); }
+  }
+
+  /* ============================================
+     RIGHT — Login form
+     ============================================ */
+  .form-side {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 32px;
+    background: var(--bg-1);
+    position: relative;
+    transition: background 0.3s;
+  }
+  .form-side.fail {
+    background: #2a1414;
+    animation: bgflash 0.35s ease-out;
+  }
+  @keyframes bgflash {
+    0%   { background: #3a1616; }
+    100% { background: #2a1414; }
+  }
+
+  .form-card {
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .form-card h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .form-card .sub {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+
+  .field {
+    margin-bottom: 16px;
+  }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .field input {
+    width: 100%;
+    height: 44px;
+    padding: 0 14px;
+    background: var(--field-bg);
+    border: 1px solid var(--field-border);
+    border-radius: var(--radius);
+    color: var(--fg);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .field input:focus {
+    border-color: var(--neo);
+    background: rgba(255,107,53,0.05);
+  }
+  .field input.err {
+    border-color: var(--danger);
+    background: rgba(239,68,68,0.06);
+  }
+  .field .hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    min-height: 14px;
+  }
+  .field .hint.err { color: var(--danger); }
+
+  .row-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 8px 0 20px;
+  }
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+  }
+  .check input {
+    appearance: none;
+    width: 16px; height: 16px;
+    border: 1px solid var(--field-border);
+    border-radius: 4px;
+    background: var(--field-bg);
+    cursor: pointer;
+    position: relative;
+  }
+  .check input:checked {
+    background: var(--neo);
+    border-color: var(--neo);
+  }
+  .check input:checked::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 5px;
+    width: 4px; height: 8px;
+    border-right: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(45deg);
+  }
+  .forgot {
+    font-size: 12px;
+    color: var(--neo);
+    text-decoration: none;
+  }
+  .forgot:hover { text-decoration: underline; }
+
+  .btn {
+    width: 100%;
+    height: 48px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.2s, background 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .btn-primary {
+    background: var(--neo);
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(255,107,53,0.3);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 32px rgba(255,107,53,0.45);
+  }
+  .btn-primary:active { transform: translateY(0); }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .btn-ghost {
+    background: var(--field-bg);
+    color: var(--fg);
+    border: 1px solid var(--field-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.06); }
+  .btn-ghost svg { width: 18px; height: 18px; }
+
+  /* Google Sign-In (GIS renders its own button inside #gBtn) */
+  .g-btn-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  #gBtn {
+    display: flex;
+    justify-content: center;
+    min-height: 44px;
+  }
+  /* GIS button — let it keep its own look but center it */
+  #gBtn > div { margin: 0 auto; }
+  .g-fallback {
+    padding: 10px 12px;
+    border: 1px dashed rgba(239,68,68,0.4);
+    border-radius: 10px;
+    background: rgba(239,68,68,0.05);
+    color: #fca5a5;
+    font-size: 12px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    line-height: 1.5;
+  }
+
+  .signup {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .signup a { color: var(--neo); text-decoration: none; font-weight: 500; }
+  .signup a:hover { text-decoration: underline; }
+
+  /* demo credential hint — subtle monospace chip */
+  .demo-chip {
+    margin-top: 16px;
+    padding: 10px 12px;
+    background: rgba(255,107,53,0.06);
+    border: 1px dashed rgba(255,107,53,0.25);
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .demo-chip b { color: var(--neo); font-weight: 600; }
+
+  /* success overlay — sparkle */
+  .sparkle {
+    position: absolute;
+    pointer-events: none;
+    width: 8px; height: 8px;
+    background: #fff;
+    border-radius: 50%;
+    opacity: 0;
+  }
+  .slot.happy .sparkle {
+    animation: sparkle 0.9s ease-out;
+  }
+  @keyframes sparkle {
+    0%   { opacity: 0; transform: translate(0, 0) scale(0.5); }
+    40%  { opacity: 1; transform: translate(var(--sx, 20px), var(--sy, -30px)) scale(1); }
+    100% { opacity: 0; transform: translate(calc(var(--sx, 20px) * 1.6), calc(var(--sy, -30px) * 1.6)) scale(0.3); }
+  }
+
+  /* toast */
+  .toast {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    transition: transform 0.35s cubic-bezier(.2,.9,.3,1.3);
+    z-index: 100;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.ok   { border-color: var(--success); color: var(--success); }
+  .toast.err  { border-color: var(--danger);  color: var(--danger); }
+</style>
+<script src="neo-cmdk.js?v=5" defer></script>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ============================================
+       LEFT — Characters on pedestal
+       ============================================ -->
+  <section class="stage-side" id="stageSide">
+    <div class="brand">
+      <span class="dot"></span>
+      <span>NEO · LABS</span>
+    </div>
+
+    <div class="pedestal" id="pedestal">
+      <!-- characters injected by JS -->
+    </div>
+  </section>
+
+  <!-- ============================================
+       RIGHT — Login form
+       ============================================ -->
+  <section class="form-side" id="formSide">
+    <div class="form-card">
+      <h1>Welcome back!</h1>
+      <p class="sub">เข้าสู่ระบบเพื่อเริ่มงานกับทีม NEO Labs</p>
+
+      <form id="loginForm" autocomplete="off" novalidate>
+        <!-- Email -->
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="boss@neolabs.co">
+          <div class="hint" id="emailHint"></div>
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="••••••••">
+          <div class="hint" id="passwordHint"></div>
+        </div>
+
+        <!-- Remember / Forgot -->
+        <div class="row-between">
+          <label class="check">
+            <input type="checkbox" id="remember" checked>
+            <span>Remember for 30 days</span>
+          </label>
+          <a href="#" class="forgot">Forgot password?</a>
+        </div>
+
+        <!-- Primary button -->
+        <button type="submit" class="btn btn-primary" id="loginBtn">Log In</button>
+
+        <!-- Divider -->
+        <div class="divider">OR</div>
+
+        <!-- Google — rendered by GIS script -->
+        <div id="gBtnWrap" class="g-btn-wrap">
+          <div id="gBtn"></div>
+          <div id="gBtnFallback" class="g-fallback" hidden>
+            ⚠ Google Sign-In ยังไม่พร้อม — ตั้ง CLIENT_ID + serve ผ่าน HTTP
+          </div>
+        </div>
+
+        <p class="signup">Don't have an account? <a href="#">Sign up</a></p>
+
+        <!-- demo credential hint -->
+        <div class="demo-chip">
+          <b>DEMO:</b> boss@neolabs.co / neolabs2026
+        </div>
+      </form>
+    </div>
+  </section>
+
+</div>
+
+<!-- toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================
+   CHARACTER DEFINITIONS (subset — expression-rich picks)
+   ============================================ */
+const CHARS = [
+  { id: 'nova',  color: 'var(--nova)'  },
+  { id: 'atlas', color: 'var(--atlas)' },
+  { id: 'neo',   color: 'var(--neo)'   },
+  { id: 'luna',  color: 'var(--luna)'  },
+  { id: 'pixel', color: 'var(--pixel)' },
+  { id: 'sage',  color: 'var(--sage)'  },
+  { id: 'rex',   color: 'var(--rex)'   },
+  { id: 'byte',  color: 'var(--byte)'  },
+  { id: 'quill', color: 'var(--quill)' },
+];
+
+/* ============================================
+   BODY + FACES — copied from neo-labs-team.html
+   ============================================ */
+const BODY = [
+  {r:1,c:1},{r:1,c:2}, {r:1,c:9},{r:1,c:10},
+  {r:2,c:1},{r:2,c:2},{r:2,c:3},{r:2,c:4},{r:2,c:5},{r:2,c:6},{r:2,c:7},{r:2,c:8},{r:2,c:9},{r:2,c:10},
+  {r:3,c:1},{r:3,c:2},{r:3,c:3},{r:3,c:4},{r:3,c:5},{r:3,c:6},{r:3,c:7},{r:3,c:8},{r:3,c:9},{r:3,c:10},
+  {r:4,c:1},{r:4,c:10},
+  {r:5,c:1},{r:5,c:10},
+  {r:6,c:1},{r:6,c:10},
+  {r:7,c:1},{r:7,c:10},
+  {r:8,c:1},{r:8,c:2},{r:8,c:3},{r:8,c:4},{r:8,c:5},{r:8,c:6},{r:8,c:7},{r:8,c:8},{r:8,c:9},{r:8,c:10},
+  {r:9,c:1},{r:9,c:2},{r:9,c:3},{r:9,c:4},{r:9,c:5},{r:9,c:6},{r:9,c:7},{r:9,c:8},{r:9,c:9},{r:9,c:10},
+  {r:10,c:1},{r:10,c:2}, {r:10,c:4},{r:10,c:5},{r:10,c:6},{r:10,c:7}, {r:10,c:9},{r:10,c:10},
+];
+const FACE_CELLS = [];
+for (let r = 4; r <= 7; r++) for (let c = 2; c <= 9; c++) FACE_CELLS.push({r, c});
+
+/* FACES — 3 expression variants per bot:
+   - normal : idle
+   - happy  : eyes ^^ + wide smile
+   - sad    : dot eyes + frown
+*/
+const FACES = {
+  neo: {
+    normal: {
+      eye:   [{r:4,c:3},{r:5,c:2},{r:5,c:3}, {r:4,c:8},{r:5,c:8},{r:5,c:9}],
+      mouth: [{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7}],
+    },
+    happy: {
+      eye:   [{r:5,c:2},{r:4,c:3},{r:5,c:4}, {r:5,c:7},{r:4,c:8},{r:5,c:9}],  // ^^
+      mouth: [{r:6,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7},{r:6,c:8}],
+    },
+    sad: {
+      eye:   [{r:5,c:3}, {r:5,c:8}],
+      mouth: [{r:6,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:7}],  // frown
+    },
+  },
+  luna: {
+    normal: {
+      eye:   [{r:4,c:3},{r:5,c:3}, {r:4,c:8},{r:5,c:8}],
+      mouth: [{r:6,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7},{r:6,c:8}],
+    },
+    happy: {
+      eye:   [{r:5,c:2},{r:4,c:3},{r:5,c:4}, {r:5,c:7},{r:4,c:8},{r:5,c:9}],
+      mouth: [{r:6,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7},{r:6,c:8}],
+    },
+    sad: {
+      eye:   [{r:5,c:3}, {r:5,c:8}],
+      mouth: [{r:6,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:7}],
+    },
+  },
+  nova: {
+    normal: {
+      eye:   [{r:4,c:2},{r:4,c:3},{r:5,c:2},{r:5,c:3},
+              {r:4,c:8},{r:4,c:9},{r:5,c:8},{r:5,c:9}],
+      mouth: [{r:6,c:5},{r:6,c:6},{r:7,c:5},{r:7,c:6}],
+    },
+    happy: {
+      eye:   [{r:5,c:2},{r:4,c:3},{r:5,c:4}, {r:5,c:7},{r:4,c:8},{r:5,c:9}],
+      mouth: [{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7}],
+    },
+    sad: {
+      eye:   [{r:5,c:3}, {r:5,c:8}],
+      mouth: [{r:6,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:7}],
+    },
+  },
+  byte: {
+    normal: {
+      eye:   [{r:4,c:2},{r:4,c:3},{r:5,c:2},{r:5,c:3},
+              {r:4,c:8},{r:4,c:9},{r:5,c:8},{r:5,c:9}],
+      mouth: [{r:7,c:3},{r:7,c:5},{r:7,c:7}],
+    },
+    happy: {
+      eye:   [{r:5,c:2},{r:4,c:3},{r:5,c:4}, {r:5,c:7},{r:4,c:8},{r:5,c:9}],
+      mouth: [{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7}],
+    },
+    sad: {
+      eye:   [{r:5,c:3}, {r:5,c:8}],
+      mouth: [{r:6,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:7}],
+    },
+  },
+  atlas: {
+    /* calm PM — tiny dot eyes + straight line mouth */
+    normal: {
+      eye:   [{r:5,c:3}, {r:5,c:8}],
+      mouth: [{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7}],
+    },
+    happy: {
+      eye:   [{r:5,c:2},{r:4,c:3},{r:5,c:4}, {r:5,c:7},{r:4,c:8},{r:5,c:9}],
+      mouth: [{r:6,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7},{r:6,c:8}],
+    },
+    sad: {
+      eye:   [{r:5,c:3}, {r:5,c:8}],
+      mouth: [{r:6,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:7}],
+    },
+  },
+  pixel: {
+    /* playful squint + wide smile */
+    normal: {
+      eye:   [{r:5,c:2},{r:5,c:3}, {r:5,c:8},{r:5,c:9}],
+      mouth: [{r:6,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7},{r:6,c:8}],
+    },
+    happy: {
+      eye:   [{r:5,c:2},{r:4,c:3},{r:5,c:4}, {r:5,c:7},{r:4,c:8},{r:5,c:9}],
+      mouth: [{r:6,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7},{r:6,c:8}],
+    },
+    sad: {
+      eye:   [{r:5,c:3}, {r:5,c:8}],
+      mouth: [{r:6,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:7}],
+    },
+  },
+  sage: {
+    /* serene — long vertical eye lines + small smile */
+    normal: {
+      eye:   [{r:4,c:3},{r:5,c:3},{r:6,c:3}, {r:4,c:8},{r:5,c:8},{r:6,c:8}],
+      mouth: [{r:7,c:5},{r:7,c:6}],
+    },
+    happy: {
+      eye:   [{r:5,c:2},{r:4,c:3},{r:5,c:4}, {r:5,c:7},{r:4,c:8},{r:5,c:9}],
+      mouth: [{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7}],
+    },
+    sad: {
+      eye:   [{r:5,c:3}, {r:5,c:8}],
+      mouth: [{r:6,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:7}],
+    },
+  },
+  rex: {
+    /* fierce — angled > < eyes + jagged teeth */
+    normal: {
+      eye:   [{r:4,c:2},{r:5,c:3},{r:6,c:2}, {r:4,c:9},{r:5,c:8},{r:6,c:9}],
+      mouth: [{r:6,c:4},{r:7,c:5},{r:6,c:6},{r:7,c:7}],
+    },
+    happy: {
+      eye:   [{r:5,c:2},{r:4,c:3},{r:5,c:4}, {r:5,c:7},{r:4,c:8},{r:5,c:9}],
+      mouth: [{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7}],
+    },
+    sad: {
+      eye:   [{r:5,c:3}, {r:5,c:8}],
+      mouth: [{r:6,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:7}],
+    },
+  },
+  quill: {
+    /* writer wink — left open, right line + smirk */
+    normal: {
+      eye:   [{r:4,c:2},{r:4,c:3},{r:5,c:2},{r:5,c:3}, {r:5,c:8},{r:5,c:9}],
+      mouth: [{r:7,c:5},{r:7,c:6},{r:7,c:7},{r:6,c:7}],
+    },
+    happy: {
+      eye:   [{r:5,c:2},{r:4,c:3},{r:5,c:4}, {r:5,c:7},{r:4,c:8},{r:5,c:9}],
+      mouth: [{r:6,c:3},{r:7,c:4},{r:7,c:5},{r:7,c:6},{r:7,c:7},{r:6,c:8}],
+    },
+    sad: {
+      eye:   [{r:5,c:3}, {r:5,c:8}],
+      mouth: [{r:6,c:4},{r:7,c:5},{r:7,c:6},{r:6,c:7}],
+    },
+  },
+};
+
+/* ============================================
+   BUILD BOT — returns bot element
+   mode = 'normal' | 'happy' | 'sad'
+   ============================================ */
+function buildBot(id, color, mode = 'normal') {
+  const bot = document.createElement('div');
+  bot.className = 'bot';
+  bot.style.color = color;
+  bot.dataset.id = id;
+
+  const face = FACES[id][mode];
+  const eyeSet = new Set(face.eye.map(p => `${p.r},${p.c}`));
+  const mouthSet = new Set(face.mouth.map(p => `${p.r},${p.c}`));
+
+  /* body */
+  BODY.forEach(px => {
+    const cell = document.createElement('div');
+    cell.className = 'p';
+    cell.style.gridRow = px.r;
+    cell.style.gridColumn = px.c;
+    bot.appendChild(cell);
+  });
+
+  /* face area */
+  FACE_CELLS.forEach(({r, c}) => {
+    const key = `${r},${c}`;
+    const cell = document.createElement('div');
+    cell.style.gridRow = r;
+    cell.style.gridColumn = c;
+    if (eyeSet.has(key))        cell.className = 'p eye';
+    else if (mouthSet.has(key)) cell.className = 'p mouth';
+    else                        cell.className = 'p';
+    bot.appendChild(cell);
+  });
+
+  /* cover plate for password mode (hidden until .covered) */
+  const cover = document.createElement('div');
+  cover.className = 'cover';
+  bot.appendChild(cover);
+
+  return bot;
+}
+
+/* ============================================
+   RENDER PEDESTAL
+   ============================================ */
+const pedestal = document.getElementById('pedestal');
+const slots = {};  // id -> slot element
+
+CHARS.forEach(ch => {
+  const slot = document.createElement('div');
+  slot.className = 'slot';
+  slot.dataset.id = ch.id;
+
+  slot.appendChild(buildBot(ch.id, ch.color, 'normal'));
+
+  const label = document.createElement('div');
+  label.className = 'label';
+  label.textContent = ch.id.toUpperCase();
+  slot.appendChild(label);
+
+  /* sparkles for happy state */
+  for (let i = 0; i < 4; i++) {
+    const sp = document.createElement('div');
+    sp.className = 'sparkle';
+    const angle = (i / 4) * Math.PI * 2;
+    sp.style.setProperty('--sx', `${Math.cos(angle) * 28}px`);
+    sp.style.setProperty('--sy', `${Math.sin(angle) * 28 - 20}px`);
+    sp.style.left = '50%';
+    sp.style.top  = '30%';
+    slot.appendChild(sp);
+  }
+
+  pedestal.appendChild(slot);
+  slots[ch.id] = slot;
+});
+
+/* ============================================
+   SET FACE — swap bot with new expression
+   ============================================ */
+function setFace(mode) {
+  CHARS.forEach(ch => {
+    const slot = slots[ch.id];
+    const oldBot = slot.querySelector('.bot');
+    const wasCovered = oldBot.classList.contains('covered');
+    const newBot = buildBot(ch.id, ch.color, mode);
+    if (wasCovered) newBot.classList.add('covered');
+    oldBot.replaceWith(newBot);
+  });
+}
+
+/* ============================================
+   EYE TRACKING — pupils follow mouse
+   ============================================ */
+const MAX_PUPIL = 2;  // max pixels pupils can move (keeps them inside eye)
+
+document.addEventListener('mousemove', (e) => {
+  CHARS.forEach(ch => {
+    const slot = slots[ch.id];
+    if (slot.classList.contains('sad')) return;  // head down — don't track
+    const bot = slot.querySelector('.bot');
+    if (bot.classList.contains('covered')) return;
+
+    const rect = bot.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const dist = Math.hypot(dx, dy) || 1;
+    const nx = (dx / dist) * MAX_PUPIL;
+    const ny = (dy / dist) * MAX_PUPIL;
+
+    bot.querySelectorAll('.eye').forEach(eye => {
+      eye.style.setProperty('--px-x', `${nx}px`);
+      eye.style.setProperty('--px-y', `${ny}px`);
+    });
+  });
+});
+
+/* ============================================
+   COVER EYES — when password focused
+   ============================================ */
+function coverEyes(on) {
+  CHARS.forEach(ch => {
+    const bot = slots[ch.id].querySelector('.bot');
+    bot.classList.toggle('covered', on);
+  });
+}
+
+/* ============================================
+   STATE HELPERS
+   ============================================ */
+function clearStates() {
+  CHARS.forEach(ch => {
+    slots[ch.id].classList.remove('sad', 'happy', 'anticipate', 'excited');
+  });
+}
+function setSad()       { clearStates(); setFace('sad');    CHARS.forEach(c => slots[c.id].classList.add('sad')); }
+function setHappy()     { clearStates(); setFace('happy');  CHARS.forEach(c => slots[c.id].classList.add('happy')); }
+function setNormal()    { clearStates(); setFace('normal'); }
+function setExcited()   { clearStates(); setFace('normal'); CHARS.forEach(c => slots[c.id].classList.add('excited')); }
+function setAnticipate(){ clearStates(); setFace('normal'); CHARS.forEach(c => slots[c.id].classList.add('anticipate')); }
+
+/* ============================================
+   FORM WIRING
+   ============================================ */
+const email   = document.getElementById('email');
+const pass    = document.getElementById('password');
+const form    = document.getElementById('loginForm');
+const btn     = document.getElementById('loginBtn');
+const formSide = document.getElementById('formSide');
+const emailHint = document.getElementById('emailHint');
+const passHint  = document.getElementById('passwordHint');
+const toast     = document.getElementById('toast');
+
+const DEMO = { email: 'boss@neolabs.co', password: 'neolabs2026' };
+
+function validEmail(v) { return /@/.test(v) && /\./.test(v); }
+
+/* email typing → excited */
+email.addEventListener('input', () => {
+  emailHint.textContent = '';
+  emailHint.classList.remove('err');
+  email.classList.remove('err');
+  if (!slots.neo.classList.contains('anticipate')) setExcited();
+});
+email.addEventListener('focus', setExcited);
+email.addEventListener('blur', () => {
+  if (email.value && !validEmail(email.value)) {
+    email.classList.add('err');
+    emailHint.textContent = 'รูปแบบ email ไม่ถูก (ต้องมี @ และ .)';
+    emailHint.classList.add('err');
+  }
+  setNormal();
+});
+
+/* password → cover eyes */
+pass.addEventListener('focus', () => { coverEyes(true); });
+pass.addEventListener('blur', () => {
+  coverEyes(false);
+  if (pass.value && pass.value.length < 8) {
+    pass.classList.add('err');
+    passHint.textContent = 'Password อย่างน้อย 8 ตัวอักษร';
+    passHint.classList.add('err');
+  }
+});
+pass.addEventListener('input', () => {
+  passHint.textContent = '';
+  passHint.classList.remove('err');
+  pass.classList.remove('err');
+});
+
+/* login button hover → anticipate */
+btn.addEventListener('mouseenter', () => {
+  if (document.activeElement !== pass) setAnticipate();
+});
+btn.addEventListener('mouseleave', () => {
+  if (document.activeElement !== pass && !slots.neo.classList.contains('happy')) setNormal();
+});
+
+/* submit */
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  const em = email.value.trim();
+  const pw = pass.value;
+
+  /* client validation */
+  if (!validEmail(em)) {
+    email.classList.add('err');
+    emailHint.textContent = 'รูปแบบ email ไม่ถูก (ต้องมี @ และ .)';
+    emailHint.classList.add('err');
+    email.focus();
+    return;
+  }
+  if (pw.length < 8) {
+    pass.classList.add('err');
+    passHint.textContent = 'Password อย่างน้อย 8 ตัวอักษร';
+    passHint.classList.add('err');
+    pass.focus();
+    return;
+  }
+
+  /* uncover first (user left the field via submit) */
+  coverEyes(false);
+
+  /* check credential */
+  if (em === DEMO.email && pw === DEMO.password) {
+    loginSuccess({ email: em, name: 'บอส', provider: 'demo' });
+  } else {
+    setSad();
+    formSide.classList.add('fail');
+    showToast('Email หรือ Password ไม่ถูกต้อง', 'err');
+    setTimeout(() => {
+      formSide.classList.remove('fail');
+    }, 350);
+    setTimeout(() => { setNormal(); }, 2000);
+  }
+});
+
+/* ============================================
+   TOAST
+   ============================================ */
+let toastTimer;
+function showToast(msg, kind = '') {
+  toast.textContent = msg;
+  toast.className = 'toast show ' + kind;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.className = 'toast ' + kind;
+  }, 2400);
+}
+
+/* ============================================
+   LOGIN SUCCESS — shared handler (demo + Google)
+   ============================================ */
+const REDIRECT_TO = 'neo-labs-office.html';
+
+function loginSuccess(user) {
+  /* persist session */
+  try {
+    localStorage.setItem('neo_user', JSON.stringify({ ...user, ts: Date.now() }));
+  } catch (_) {}
+
+  setHappy();
+  const first = (user.name || user.email || 'บอส').split(' ')[0];
+  showToast(`ยินดีต้อนรับ ${first} — กำลังพาเข้า NEO Labs...`, 'ok');
+
+  /* honor ?from= (set by neo-auth.js when redirecting expired session) */
+  const params = new URLSearchParams(location.search);
+  const from = params.get('from');
+  const target = from && from.startsWith('/') && !from.includes('login') ? from : REDIRECT_TO;
+
+  setTimeout(() => {
+    window.location.href = target;
+  }, 1400);
+}
+
+/* ============================================
+   GOOGLE SIGN-IN (Google Identity Services)
+   ----------------------------------------------
+   SETUP:
+   1) สร้าง OAuth Client ID ที่ console.cloud.google.com
+      → APIs & Services → Credentials → Create OAuth 2.0 Client ID
+      → Application type: Web application
+      → Authorized JavaScript origins: http://localhost:8000 (หรือ domain จริง)
+   2) แทน GOOGLE_CLIENT_ID ข้างล่างนี้ด้วย Client ID ที่ได้
+   3) Serve หน้านี้ผ่าน HTTP — ห้ามเปิดจาก file://
+      เช่น:   python3 -m http.server 8000
+      แล้วเปิด http://localhost:8000/neo-labs-login.html
+   ============================================ */
+const GOOGLE_CLIENT_ID = '507309950334-6o5c75ms28a9bng6e9cq5jkv2spssnt6.apps.googleusercontent.com';
+
+function handleGoogleCredential(response) {
+  try {
+    /* decode JWT payload (middle segment, base64url) */
+    const b64 = response.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(decodeURIComponent(escape(atob(b64))));
+    loginSuccess({
+      email:    payload.email,
+      name:     payload.name,
+      picture:  payload.picture,
+      sub:      payload.sub,
+      provider: 'google',
+      token:    response.credential,   // raw JWT — sent as Bearer to backend
+      exp:      payload.exp,           // unix seconds, for expiry checks
+    });
+  } catch (err) {
+    console.error('Google credential decode failed', err);
+    showToast('Google Sign-In ล้มเหลว — ลองใหม่อีกครั้ง', 'err');
+    setSad();
+    setTimeout(setNormal, 2000);
+  }
+}
+
+function initGoogleSignIn() {
+  /* wait for GIS script to load */
+  if (!(window.google && google.accounts && google.accounts.id)) {
+    return setTimeout(initGoogleSignIn, 150);
+  }
+
+  const fallback = document.getElementById('gBtnFallback');
+
+  /* guard: CLIENT_ID not set → show fallback message */
+  if (GOOGLE_CLIENT_ID.startsWith('___') || !GOOGLE_CLIENT_ID.includes('.apps.googleusercontent.com')) {
+    fallback.hidden = false;
+    return;
+  }
+
+  try {
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback:  handleGoogleCredential,
+      ux_mode:   'popup',
+      auto_select: false,
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('gBtn'),
+      { theme: 'filled_black', size: 'large', shape: 'pill', text: 'continue_with', width: 320 }
+    );
+  } catch (err) {
+    console.error('GIS init failed', err);
+    fallback.hidden = false;
+  }
+}
+initGoogleSignIn();
+</script>
+
+</body>
+</html>
