@@ -336,6 +336,7 @@ body {
       <option value="90">90 วัน</option>
     </select>
     <button id="refreshBtn">↻ Refresh</button>
+    <button id="exportCsvBtn" title="ดาวน์โหลด audit log เป็น CSV">⬇ CSV</button>
     <span id="updatedAt" style="margin-left:auto; font-size:11px; color:var(--dim); font-family:'JetBrains Mono',monospace;"></span>
   </div>
 
@@ -599,6 +600,40 @@ function renderAudit(rows) {
 
 document.getElementById('windowSel').addEventListener('change', loadStats);
 document.getElementById('refreshBtn').addEventListener('click', loadStats);
+document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
+
+async function exportCsv() {
+  const btn = document.getElementById('exportCsvBtn');
+  const orig = btn.textContent;
+  btn.textContent = '…'; btn.disabled = true;
+  try {
+    const rows = await fetch(`${API}/admin/audit?limit=500`).then(r => r.json());
+    const header = ['timestamp_iso','user_email','action','agent','model','tokens_in','tokens_out','latency_ms','meta'];
+    const csvRows = [header.join(',')];
+    for (const r of rows) {
+      const iso = new Date(r.ts).toISOString();
+      const cells = [iso, r.user_email || '', r.action || '', r.agent || '',
+                     r.model || '', r.tokens_in || 0, r.tokens_out || 0, r.ms || 0, r.meta || ''];
+      csvRows.push(cells.map(csvCell).join(','));
+    }
+    const blob = new Blob(['\ufeff' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    a.href = url; a.download = `neo-labs-audit-${stamp}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (e) {
+    alert('Export failed: ' + e.message);
+  } finally {
+    btn.textContent = orig; btn.disabled = false;
+  }
+}
+function csvCell(v) {
+  const s = String(v ?? '');
+  if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
 
 loadStats().catch(err => {
   console.error('Failed to load admin stats:', err);
