@@ -2478,7 +2478,7 @@ async function sendMessage(overridePrompt) {
   }
 }
 
-sendBtn.addEventListener('click', sendMessage);
+sendBtn.addEventListener('click', () => sendMessage());  // wrap so MouseEvent isn't passed as overridePrompt → .trim() TypeError
 
 cmdInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {

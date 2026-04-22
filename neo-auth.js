@@ -25,9 +25,10 @@
       const u = JSON.parse(raw);
       if (!u || !u.email || !u.ts) return null;
       if (Date.now() - u.ts > MAX_AGE_MS) return null;  // expired
-      /* Google sessions MUST carry the raw JWT — older sessions predating
-         the auth middleware won't work against backend. Treat as stale. */
-      if (u.provider === 'google' && !u.token) return null;
+      /* Any session without a JWT cannot authenticate against the backend.
+         Demo login previously produced tokenless sessions — those now
+         silently 401 on /chat. Treat all tokenless sessions as invalid. */
+      if (!u.token) return null;
       /* Google JWT itself expires in 1h — re-login if past that. */
       if (u.exp && Date.now() / 1000 > u.exp) return null;
       return u;

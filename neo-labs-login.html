@@ -590,12 +590,7 @@
           </div>
         </div>
 
-        <p class="signup">Don't have an account? <a href="#">Sign up</a></p>
-
-        <!-- demo credential hint -->
-        <div class="demo-chip">
-          <b>DEMO:</b> boss@neolabs.co / neolabs2026
-        </div>
+        <p class="signup" style="font-size:12px;color:var(--muted);">Sign in with Google only — demo login removed</p>
       </form>
     </div>
   </section>
@@ -1006,18 +1001,14 @@ form.addEventListener('submit', (e) => {
   /* uncover first (user left the field via submit) */
   coverEyes(false);
 
-  /* check credential */
-  if (em === DEMO.email && pw === DEMO.password) {
-    loginSuccess({ email: em, name: 'บอส', provider: 'demo' });
-  } else {
-    setSad();
-    formSide.classList.add('fail');
-    showToast('Email หรือ Password ไม่ถูกต้อง', 'err');
-    setTimeout(() => {
-      formSide.classList.remove('fail');
-    }, 350);
-    setTimeout(() => { setNormal(); }, 2000);
-  }
+  /* Demo password login removed — backend requires Google JWT for /chat.
+     Send every form submit to the "use Google" toast so no tokenless
+     sessions can be created. */
+  setSad();
+  formSide.classList.add('fail');
+  showToast('ใช้ปุ่ม Sign in with Google ด้านล่าง', 'err');
+  setTimeout(() => { formSide.classList.remove('fail'); }, 350);
+  setTimeout(() => { setNormal(); }, 2000);
 });
 
 /* ============================================
