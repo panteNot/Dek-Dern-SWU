@@ -18,9 +18,12 @@ CREATE TABLE IF NOT EXISTS conversations (
   title      TEXT NOT NULL,
   agent      TEXT NOT NULL,
   model      TEXT,
+  user_email TEXT NOT NULL DEFAULT '',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
+-- user_email index created in init() after migration to avoid
+-- referencing the column before ALTER TABLE adds it on old DBs.
 
 CREATE TABLE IF NOT EXISTS messages (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,28 +81,51 @@ def conn():
 def init():
     with conn() as c:
         c.executescript(SCHEMA)
+        # Migration: older DBs have `conversations` without user_email column.
+        cols = {r["name"] for r in c.execute("PRAGMA table_info(conversations)").fetchall()}
+        if "user_email" not in cols:
+            c.execute("ALTER TABLE conversations ADD COLUMN user_email TEXT NOT NULL DEFAULT ''")
+            # Backfill existing rows to the original single-tenant owner.
+            c.execute(
+                "UPDATE conversations SET user_email = ? WHERE user_email = ''",
+                ("pantepante72@gmail.com",),
+            )
+        # Idempotent: create the per-user index after the column is guaranteed.
+        c.execute(
+            "CREATE INDEX IF NOT EXISTS idx_conv_user "
+            "ON conversations(user_email, updated_at DESC)"
+        )
 
 
 def now_ms() -> int:
     return int(time.time() * 1000)
 
 
-def list_conversations(limit: int = 100) -> list[dict]:
+def list_conversations(user_email: str = "", limit: int = 100) -> list[dict]:
+    """List conversations owned by user_email. Empty email returns nothing —
+    prevents accidental cross-tenant leaks if caller forgets to pass email."""
+    if not user_email:
+        return []
     with conn() as c:
         rows = c.execute(
-            "SELECT id, title, agent, model, created_at, updated_at "
-            "FROM conversations ORDER BY updated_at DESC LIMIT ?",
-            (limit,),
+            "SELECT id, title, agent, model, user_email, created_at, updated_at "
+            "FROM conversations WHERE user_email = ? "
+            "ORDER BY updated_at DESC LIMIT ?",
+            (user_email, limit),
         ).fetchall()
         return [dict(r) for r in rows]
 
 
-def get_conversation(conv_id: str) -> Optional[dict]:
+def get_conversation(conv_id: str, user_email: str = "") -> Optional[dict]:
+    """Fetch conv + messages. Returns None if conv doesn't exist OR belongs
+    to a different user. Empty user_email also returns None (defensive)."""
+    if not user_email:
+        return None
     with conn() as c:
         row = c.execute(
-            "SELECT id, title, agent, model, created_at, updated_at "
-            "FROM conversations WHERE id = ?",
-            (conv_id,),
+            "SELECT id, title, agent, model, user_email, created_at, updated_at "
+            "FROM conversations WHERE id = ? AND user_email = ?",
+            (conv_id, user_email),
         ).fetchone()
         if not row:
             return None
@@ -124,14 +150,14 @@ def get_history(conv_id: str) -> list[dict]:
         return [{"role": r["role"], "content": r["content"]} for r in rows]
 
 
-def create_conversation(title: str, agent: str, model: str = "") -> str:
+def create_conversation(title: str, agent: str, model: str = "", user_email: str = "") -> str:
     cid = "c_" + uuid.uuid4().hex[:12]
     t = now_ms()
     with conn() as c:
         c.execute(
-            "INSERT INTO conversations(id, title, agent, model, created_at, updated_at) "
-            "VALUES(?, ?, ?, ?, ?, ?)",
-            (cid, title[:120], agent, model, t, t),
+            "INSERT INTO conversations(id, title, agent, model, user_email, created_at, updated_at) "
+            "VALUES(?, ?, ?, ?, ?, ?, ?)",
+            (cid, title[:120], agent, model, user_email or "", t, t),
         )
     return cid
 
@@ -151,20 +177,29 @@ def append_message(conv_id: str, role: str, content: str, agent: str = "") -> in
         return cur.lastrowid
 
 
-def delete_all_conversations() -> int:
-    """Wipe every conversation and its messages. Returns count deleted."""
+def delete_all_conversations(user_email: str = "") -> int:
+    """Wipe every conversation owned by user_email. Empty email = no-op
+    (safer than wiping everything by accident)."""
+    if not user_email:
+        return 0
     with conn() as c:
-        n = c.execute("SELECT COUNT(*) n FROM conversations").fetchone()["n"]
-        c.execute("DELETE FROM conversations")
+        n = c.execute(
+            "SELECT COUNT(*) n FROM conversations WHERE user_email = ?",
+            (user_email,),
+        ).fetchone()["n"]
+        c.execute("DELETE FROM conversations WHERE user_email = ?", (user_email,))
         return n
 
 
-def export_all_conversations() -> list[dict]:
-    """Full dump of every conversation + its messages. For user data export."""
+def export_all_conversations(user_email: str = "") -> list[dict]:
+    """Full dump of conversations owned by user_email."""
+    if not user_email:
+        return []
     with conn() as c:
         convs = c.execute(
-            "SELECT id, title, agent, model, created_at, updated_at "
-            "FROM conversations ORDER BY updated_at DESC"
+            "SELECT id, title, agent, model, user_email, created_at, updated_at "
+            "FROM conversations WHERE user_email = ? ORDER BY updated_at DESC",
+            (user_email,),
         ).fetchall()
         out = []
         for row in convs:
@@ -179,31 +214,35 @@ def export_all_conversations() -> list[dict]:
         return out
 
 
-def delete_conversation(conv_id: str) -> bool:
+def delete_conversation(conv_id: str, user_email: str = "") -> bool:
+    """Delete conv only if it belongs to user_email — blocks cross-tenant delete."""
+    if not user_email:
+        return False
     with conn() as c:
-        cur = c.execute("DELETE FROM conversations WHERE id = ?", (conv_id,))
+        cur = c.execute(
+            "DELETE FROM conversations WHERE id = ? AND user_email = ?",
+            (conv_id, user_email),
+        )
         return cur.rowcount > 0
 
 
-def search_conversations(q: str, limit: int = 50) -> list[dict]:
-    """Full-text-ish search across conversation titles AND message content.
-    Returns convs sorted by most-recently-updated, with a short snippet of the
-    first matching message (or title match if only the title hit)."""
+def search_conversations(q: str, user_email: str = "", limit: int = 50) -> list[dict]:
+    """Search titles + message content within convs owned by user_email."""
     q = (q or "").strip()
-    if not q:
+    if not q or not user_email:
         return []
     needle = f"%{q}%"
     with conn() as c:
         rows = c.execute(
             """
-            SELECT DISTINCT c.id, c.title, c.agent, c.model, c.created_at, c.updated_at
+            SELECT DISTINCT c.id, c.title, c.agent, c.model, c.user_email, c.created_at, c.updated_at
             FROM conversations c
             LEFT JOIN messages m ON m.conv_id = c.id
-            WHERE c.title LIKE ? OR m.content LIKE ?
+            WHERE c.user_email = ? AND (c.title LIKE ? OR m.content LIKE ?)
             ORDER BY c.updated_at DESC
             LIMIT ?
             """,
-            (needle, needle, limit),
+            (user_email, needle, needle, limit),
         ).fetchall()
         out = []
         for r in rows:
@@ -227,11 +266,14 @@ def search_conversations(q: str, limit: int = 50) -> list[dict]:
         return out
 
 
-def rename_conversation(conv_id: str, title: str) -> bool:
+def rename_conversation(conv_id: str, title: str, user_email: str = "") -> bool:
+    if not user_email:
+        return False
     with conn() as c:
         cur = c.execute(
-            "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?",
-            (title[:120], now_ms(), conv_id),
+            "UPDATE conversations SET title = ?, updated_at = ? "
+            "WHERE id = ? AND user_email = ?",
+            (title[:120], now_ms(), conv_id, user_email),
         )
         return cur.rowcount > 0
 

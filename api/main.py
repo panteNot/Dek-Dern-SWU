@@ -245,9 +245,10 @@ async def chat(request: Request, body: dict, user: dict = Depends(require_auth))
         return {"error": f"unknown model: {model}"}
 
     # Load prior history (Claude expects alternating user/assistant, non-empty text)
+    user_email_for_conv = (user or {}).get("email", "") if isinstance(user, dict) else ""
     history = []
     if conv_id:
-        existing = db.get_conversation(conv_id)
+        existing = db.get_conversation(conv_id, user_email_for_conv)
         if existing:
             raw_hist = db.get_history(conv_id)
             # Filter: drop empty-content rows (Anthropic 400s on empty text blocks)
@@ -265,7 +266,7 @@ async def chat(request: Request, body: dict, user: dict = Depends(require_auth))
     # Auto-create conversation on first turn (title from first prompt)
     if persist and not conv_id:
         title = prompt[:80].replace("\n", " ").strip() or "New chat"
-        conv_id = db.create_conversation(title, agent, model)
+        conv_id = db.create_conversation(title, agent, model, user_email_for_conv)
 
     # Build user content. Plain string when no attachments (cheapest path);
     # otherwise a list of blocks per Anthropic Messages API multimodal schema.
@@ -466,20 +467,23 @@ async def orchestrate_endpoint(request: Request, body: dict, user: dict = Depend
 # ============================================================
 @app.get("/conversations")
 def conversations_list(user: dict = Depends(require_auth)):
-    return db.list_conversations()
+    email = (user or {}).get("email", "") if isinstance(user, dict) else ""
+    return db.list_conversations(email)
 
 
 @app.get("/conversations/search")
 def conversations_search(q: str = "", user: dict = Depends(require_auth)):
     q = (q or "").strip()[:200]
+    email = (user or {}).get("email", "") if isinstance(user, dict) else ""
     if not q:
         return []
-    return db.search_conversations(q, limit=50)
+    return db.search_conversations(q, email, limit=50)
 
 
 @app.get("/conversations/{conv_id}")
 def conversations_get(conv_id: str, user: dict = Depends(require_auth)):
-    conv = db.get_conversation(conv_id)
+    email = (user or {}).get("email", "") if isinstance(user, dict) else ""
+    conv = db.get_conversation(conv_id, email)
     if not conv:
         return {"error": "not found"}
     return conv
@@ -487,8 +491,8 @@ def conversations_get(conv_id: str, user: dict = Depends(require_auth)):
 
 @app.delete("/conversations/{conv_id}")
 def conversations_delete(conv_id: str, user: dict = Depends(require_auth)):
-    ok = db.delete_conversation(conv_id)
     email = (user or {}).get("email", "") if isinstance(user, dict) else ""
+    ok = db.delete_conversation(conv_id, email)
     db.log_audit(email, "conversation_delete", meta=conv_id)
     return {"ok": ok}
 
@@ -498,13 +502,12 @@ def conversations_delete(conv_id: str, user: dict = Depends(require_auth)):
 # ============================================================
 @app.get("/me/export")
 def me_export(user: dict = Depends(require_auth)):
-    """Dump all the user's conversations as JSON. No filter by user yet
-    (single-tenant), so this returns everything in the db."""
+    """Dump this user's conversations as JSON."""
     email = (user or {}).get("email", "") if isinstance(user, dict) else ""
     payload = {
         "exported_at": db.now_ms(),
         "user_email": email,
-        "conversations": db.export_all_conversations(),
+        "conversations": db.export_all_conversations(email),
     }
     db.log_audit(email, "data_export", meta=f"convs={len(payload['conversations'])}")
     return payload
@@ -513,7 +516,7 @@ def me_export(user: dict = Depends(require_auth)):
 @app.post("/me/delete-all-conversations")
 def me_delete_all_conversations(user: dict = Depends(require_auth)):
     email = (user or {}).get("email", "") if isinstance(user, dict) else ""
-    n = db.delete_all_conversations()
+    n = db.delete_all_conversations(email)
     db.log_audit(email, "data_wipe", meta=f"deleted={n}")
     return {"deleted": n}
 
@@ -562,10 +565,11 @@ def admin_audit(user: dict = Depends(require_auth), limit: int = 50):
 
 @app.patch("/conversations/{conv_id}")
 def conversations_rename(conv_id: str, body: dict, user: dict = Depends(require_auth)):
+    email = (user or {}).get("email", "") if isinstance(user, dict) else ""
     title = (body.get("title") or "").strip()
     if not title:
         return {"error": "missing title"}
-    ok = db.rename_conversation(conv_id, title)
+    ok = db.rename_conversation(conv_id, title, email)
     return {"ok": ok}
 
 
