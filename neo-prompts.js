@@ -405,6 +405,7 @@
 
   function addFab() {
     if (document.getElementById('neo-pl-fab')) return;
+    injectStyle();  // FAB styles live in CSS block — must inject before append or button renders invisible
     const b = document.createElement('button');
     b.id = 'neo-pl-fab';
     b.title = 'Prompt Library';
